@@ -12,12 +12,6 @@ centerCircle_GUID = "51ee2f"
 quarterCircle_GUID = "51ee3f"
 templateObjective_GUID = "573333"
 startMenu_GUID = "738804"
-redDiceMat_GUID = "c57d70"
-blueDiceMat_GUID = "a84ed2"
-redDiceRoller_GUID = "beae28"
-blueDiceRoller_GUID = "4e0e0b"
-redMissionManager_GUID = "cff35b"
-blueMissionManager_GUID = "471de1"
 redVPCounter_GUID = "8b0541"
 blueVPCounter_GUID = "a77a54"
 redCPCounter_GUID = "e446f7"
@@ -221,46 +215,22 @@ function showHideRedBlueBtn()
     end
 end
 
-function setViewForPlayer(player, color)
-    if color=="Grey" then return end
-    local pos= {0,0,0}
-    if color == "Red" then
-        pos = getObjectFromGUID(redDiceMat_GUID).getPosition()
-    end
-    if color == "Blue" then
-        pos = getObjectFromGUID(blueDiceMat_GUID).getPosition()
-    end
-    player.lookAt({
-        position = pos,
-        pitch    = 25,
-        yaw      = 180,
-        distance = 20,
-        })
-end
-
 function placeToColor(player, color)
     player.changeColor(color)
     player.team="None"
     broadcastToColor("READ INSTRUCTIONS FIRST!\n(Click Notebook at the top)", color, "Purple")
-    --setViewForPlayer(player, color) --bugged
 end
 
 function placeToRed(player, value, id)
     placeToColor(player, "Red")
-    --player.changeColor("Red")
-    --player.team="None"
 end
 
 function placeToBlue(player, value, id)
     placeToColor(player, "Blue")
-    --player.changeColor("Blue")
-    --player.team="None"
 end
 
 function placeToGray(player, value, id)
     placeToColor(player, "Grey")
-    --player.changeColor("Grey")
-    --player.team="None"
 end
 function closeMenu(player, value, id)
     player.team="None"
@@ -268,35 +238,6 @@ function closeMenu(player, value, id)
 end
 
 backPosition={{0,0,0},{0,0,0},{0,0,0},{0,0,0}}
-function goToDiceRoller(player, value, id)
-    local matPositionOffset=12
-    local color=player.color
-    local diceMatGUID=redDiceMat_GUID
-    local i=1
-    if color == "Red" then
-        i=1
-    end
-    if color == "Orange" then
-        i=2
-    end
-    if color == "Blue" then
-        diceMatGUID = blueDiceMat_GUID
-        i=3
-        matPositionOffset=-matPositionOffset
-    end
-    if color == "Teal" then
-        diceMatGUID = blueDiceMat_GUID
-        i=4
-        matPositionOffset=-matPositionOffset
-    end
-    if Player[color].getSelectedObjects()[1] ~= nil then
-        backPosition[i]=Player[color].getSelectedObjects()[1].getPosition()
-    end
-
-    local matPos=getObjectFromGUID(diceMatGUID).getPosition()
-    matPos.x=matPos.x+matPositionOffset
-    moveCameraTo(matPos,30,color)
-end
 
 function goToSquad(player, value, id)
     local i = 1
