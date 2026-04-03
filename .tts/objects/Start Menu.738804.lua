@@ -177,7 +177,6 @@ function confirmSizeGame()
     confirmSizeMat("game")
     --deleting the Combat Patrol Mission book unless on the appropriate map size
     if sizeData[mapSizeSelected].id ~= 1 then
-        cpbook = getObjectFromGUID(Global.getVar("CPMissionBook_GUID"))
         destroyObject(cpbook)
     end
 end
@@ -1773,21 +1772,12 @@ end
 
 function updateMission()
     canChangeMission = false
-    Global.call("moveAllFromZoneToDeck", {zone = "deployment", deck = "deployment"})
-    Global.call("moveAllFromZoneToDeck", {zone = "mission", deck = "mission"})
-    Global.call("moveAllFromZoneToDeck", {zone = "primary", deck = "primary"})
 
     if selectedMission == 0 then
         missionSelectionDispBtn.label = "?"
-        Global.call("moveOneFromDeckToZone", {deck = "deployment", zone = "deployment"})
-        Global.call("moveOneFromDeckToZone", {deck = "mission", zone = "mission"})
-        Global.call("moveOneFromDeckToZone", {deck = "primary", zone = "primary"})
     else
         mission = tournamentMissions[selectedMission]
         missionSelectionDispBtn.label = mission.name
-        Global.call("moveOneFromDeckToZone", {deck = "deployment", zone = "deployment", card = mission.deployment})
-        Global.call("moveOneFromDeckToZone", {deck = "mission", zone = "mission", card = mission.mission})
-        Global.call("moveOneFromDeckToZone", {deck = "primary", zone = "primary", card = mission.primary})
     end
     writeMenus()
 

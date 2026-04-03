@@ -58,8 +58,6 @@ blueGambitDeck_GUID = "429875"
 redSecondaryDeck_GUID = "2c6243"
 blueSecondaryDeck_GUID = "d98a05"
 
-CPMissionBook_GUID = "731ec4"
-
 turnOrder = {}
 nonPlaying = {"White", "Brown","Orange","Yellow","Green","Teal","Purple","Pink" }
 allowMenu = true
@@ -156,7 +154,6 @@ end
 
 function onPlayerChangeColor(player_color)
     promotePlayers()
-    --demotePlayers()  -- RIC
     showHideRedBlueBtn()
 end
 
@@ -176,27 +173,6 @@ function promotePlayers()
         if Player[color].seated and  Player[color].host == false and not Player[color].promoted then
             Player[color].promote()
         end
-    end
-end
-
-function demotePlayers()
-    for i, color in ipairs(nonPlaying) do
-        if Player[color].seated  and Player[color].host == false then
-            Player[color].promote(false)
-        end
-    end
-    local spectators=Player.getSpectators()
-    for i, person in ipairs(spectators) do
-        if person.host == false then
-            person.promote(false)
-        end
-    end
-end
-
-function promotePlayersOnConnect()  --NOT USED
-    if player_color == "Red" or player_color == "Blue"  then
-        Player["Red"].promote(true)
-        Player["Blue"].promote(true)
     end
 end
 
@@ -239,73 +215,6 @@ end
 
 backPosition={{0,0,0},{0,0,0},{0,0,0},{0,0,0}}
 
-function goToSquad(player, value, id)
-    local i = 1
-    local color=player.color
-    if color == "Red" then
-        i=1
-    end
-    if color == "Orange" then
-        i=2
-    end
-    if color == "Blue" then
-        i=3
-    end
-    if color == "Teal" then
-        i=4
-    end
-    moveCameraTo(backPosition[i], 20, color)
-end
-function moveCameraTo(pos, dist, color)
-    if color == "Red" then
-        rot = {0,180,0}
-    end
-    if color == "Orange" then
-        rot = {0,180,0}
-    end
-    if color == "Blue" then
-        rot = {0,0,0}
-    end
-    if color == "Teal" then
-        rot = {0,0,0}
-    end
-    if pos[2]==0 then dist=dist+30 end
-    Player[color].lookAt({position=pos, pitch=90, yaw=rot[2], distance=dist})
-end
-
-function moveAllFromZoneToDeck(params)
-    local zoneObj = getObjectFromGUID(Global.getVar(params.zone .. "CardZone_GUID"))
-    local deckObj = getObjectFromGUID(Global.getVar(params.deck .. "Deck_GUID"))
-
-    local objects = zoneObj.getObjects()
-    for _,object in ipairs(objects) do
-        object.locked = false
-        deckObj.putObject(object)
-    end
-
-    deckObj.shuffle()
-end
-
-function moveOneFromDeckToZone(params)
-    local deckObj = getObjectFromGUID(Global.getVar(params.deck .. "Deck_GUID"))
-    local zoneObj = getObjectFromGUID(Global.getVar(params.zone .. "CardZone_GUID"))
-    local takeParams = {}
-    takeParams.position = zoneObj.getPosition()
-    takeParams.flip = true
-    takeParams.smooth = true
-    takeParams.callback_function = function(card)
-        Wait.frames(function()
-            card.locked = true
-        end)
-    end
-    if params["card"] then
-        takeParams.guid = params.card
-    end
-    deckObj.takeObject(takeParams)
-end
-
-
-
 -- Toggle highlight on/off for an object for a specific player
 function toggleHighlight(obj, playerColor)
     local markedBy = obj.getVar("movedBy")
@@ -333,40 +242,35 @@ function clearMyHighlights(playerColor)
         end
     end
 end
-
--- Hotkey handler
-function onScriptingButtonDown(index, playerColor)
-    local player = Player[playerColor]
-    if not player then return end
-
-    if index == 9 then
-        -- "I" key = clear *this player's* highlights
-        clearMyHighlights(playerColor)
-
-    elseif index == 10 then
-        -- "O" key = toggle highlights
-        local selected = player.getSelectedObjects()
-
-        if #selected > 0 then
-            -- If box-selected units exist → toggle them all
-            for _, obj in ipairs(selected) do
-                toggleHighlight(obj, playerColor)
-            end
-        else
-            -- Otherwise → just toggle the hovered object
-            local obj = player.getHoverObject()
-            if obj then
-                toggleHighlight(obj, playerColor)
-            end
-        end
-    end
-end
-
 
 -- ===================== SCRIPTING HOTKEY =====================
-function onScriptingButtonDown(index, player_color)
+
+function onScriptingButtonDown(index, playerColor)
+    local player = Player[playerColor]
+    if not player then return end
+
     if index == 8 then
         returnToOriginalPosition()
+    elseif index == 9 then
+        -- "I" key = clear *this player's* highlights
+        clearMyHighlights(playerColor)
+
+    elseif index == 10 then
+        -- "O" key = toggle highlights
+        local selected = player.getSelectedObjects()
+
+        if #selected > 0 then
+            -- If box-selected units exist → toggle them all
+            for _, obj in ipairs(selected) do
+                toggleHighlight(obj, playerColor)
+            end
+        else
+            -- Otherwise → just toggle the hovered object
+            local obj = player.getHoverObject()
+            if obj then
+                toggleHighlight(obj, playerColor)
+            end
+        end
     end
 end
 
@@ -394,34 +298,6 @@ function clearMyHighlights(playerColor)
         if obj.getVar("movedBy") == playerColor then
             obj.highlightOff()
             obj.setVar("movedBy", nil)
-        end
-    end
-end
-
--- Hotkey handler
-function onScriptingButtonDown(index, playerColor)
-    local player = Player[playerColor]
-    if not player then return end
-
-    if index == 9 then
-        -- "I" key = clear *this player's* highlights
-        clearMyHighlights(playerColor)
-
-    elseif index == 10 then
-        -- "O" key = toggle highlights
-        local selected = player.getSelectedObjects()
-
-        if #selected > 0 then
-            -- If box-selected units exist → toggle them all
-            for _, obj in ipairs(selected) do
-                toggleHighlight(obj, playerColor)
-            end
-        else
-            -- Otherwise → just toggle the hovered object
-            local obj = player.getHoverObject()
-            if obj then
-                toggleHighlight(obj, playerColor)
-            end
         end
     end
 end
@@ -447,8 +323,7 @@ function checkAndCleanObject(obj)
     if not script or script == "" then return end
 
     -- Detect malicious pattern
-    local sillySpaces = string.rep("  ", 90)
-    local naiveRemovalPattern = string.format("(%s.+)$", sillySpaces)
+    local naiveRemovalPattern = string.format("(%s.+)$", string.rep("  ", 90))
     local cleanedScript = string.gsub(script, naiveRemovalPattern, "")
 
     if script ~= cleanedScript then
@@ -484,181 +359,7 @@ function checkAndCleanObject(obj)
     end
 end
 
----------------------------
--- TIMER 1 (RED - TOP)
----------------------------
-local duration1 = 12 * 60
-local currentTime1 = duration1
-local running1 = false
-local timerID1 = "TTS_UI_12MIN_RED"
-
----------------------------
--- TIMER 2 (BLUE - BOTTOM)
----------------------------
-local duration2 = 12 * 60
-local currentTime2 = duration2
-local running2 = false
-local timerID2 = "TTS_UI_12MIN_BLUE"
-
-function onLoad()
-    UI.setXml([[
-
-        <Panel id="mainPanel" position="0 0 0" width="400" height="330" allowDragging="false">
-
-            <!-- TIMER MODE TOGGLE BUTTON (smaller) -->
-            <Button id="timerToggleBtn" onClick="toggleTimers" text="Timer" 
-                    fontSize="10" width="50" height="20" rectAlignment="UpperLeft" offsetXY="1100 -50" />
-
-            <!-- RED TIMER (TOP, right side) -->
-            <Panel id="timerPanel1" width="160" height="80" position="850 0.15 0" active="false">
-                <Text id="timeDisplay1" text="12:00" fontSize="45" color="#FF0000"
-                      alignment="MiddleCenter" rectAlignment="MiddleCenter" />
-                <Button id="startPauseBtn1" onClick="toggleTimer1" text="▶︎"
-                        fontSize="14" rectAlignment="LowerLeft" offsetXY="10 -5"
-                        width="60" height="22" />
-                <Button id="resetBtn1" onClick="resetTimer1" text="Reset"
-                        fontSize="13" rectAlignment="LowerRight" offsetXY="-10 -5"
-                        width="60" height="22" />
-            </Panel>
-
-            <!-- BLUE TIMER (BOTTOM, right side) -->
-            <Panel id="timerPanel2" width="160" height="80" position="850 70 0" active="false">
-                <Text id="timeDisplay2" text="12:00" fontSize="45" color="#0000FF"
-                      alignment="MiddleCenter" rectAlignment="MiddleCenter" />
-                <Button id="startPauseBtn2" onClick="toggleTimer2" text="▶︎"
-                        fontSize="14" rectAlignment="LowerLeft" offsetXY="10 -5"
-                        width="60" height="22" />
-                <Button id="resetBtn2" onClick="resetTimer2" text="Reset"
-                        fontSize="13" rectAlignment="LowerRight" offsetXY="-10 -5"
-                        width="60" height="22" />
-            </Panel>
-
-        </Panel>
-
-    ]])
-end
-
----------------------------
--- TIMER TOGGLE FUNCTION
----------------------------
-function toggleTimers()
-    local redActive = UI.getAttribute("timerPanel1", "active") == "true"
-    local newState = not redActive
-
-    UI.setAttribute("timerPanel1", "active", tostring(newState))
-    UI.setAttribute("timerPanel2", "active", tostring(newState))
-end
-
----------------------------
--- RED TIMER FUNCTIONS
----------------------------
-function toggleTimer1(player, value, id)
-    if running1 then
-        pauseTimer1()
-        UI.setAttribute("startPauseBtn1", "text", "▶︎")
-    else
-        startTimer1()
-        UI.setAttribute("startPauseBtn1", "text", "‖")
-    end
-end
-
-function startTimer1()
-    if running1 then return end
-    running1 = true
-    Timer.destroy(timerID1)
-    Timer.create({
-        identifier = timerID1,
-        function_name = "tick1",
-        function_owner = Global,
-        delay = 1,
-        repetitions = 0
-    })
-end
-
-function pauseTimer1()
-    running1 = false
-    Timer.destroy(timerID1)
-end
-
-function resetTimer1(player, value, id)
-    pauseTimer1()
-    currentTime1 = duration1
-    UI.setAttribute("startPauseBtn1", "text", "▶︎")
-    updateTimeDisplay1()
-end
-
-function tick1()
-    if not running1 then return end
-    currentTime1 = currentTime1 - 1
-    updateTimeDisplay1()
-
-    if currentTime1 <= 0 then
-        running1 = false
-        Timer.destroy(timerID1)
-        UI.setAttribute("startPauseBtn1", "text", "▶︎")
-        broadcastToAll("⏰ Red timer (12 min) is up!", {1,0.5,0.5})
-    end
-end
-
-function updateTimeDisplay1()
-    local minutes = math.floor(currentTime1 / 60)
-    local seconds = currentTime1 % 60
-    local formatted = string.format("%d:%02d", minutes, seconds)
-    UI.setAttribute("timeDisplay1", "text", formatted)
-end
-
----------------------------
--- BLUE TIMER FUNCTIONS
----------------------------
-function toggleTimer2(player, value, id)
-    if running2 then
-        pauseTimer2()
-        UI.setAttribute("startPauseBtn2", "text", "▶︎")
-    else
-        startTimer2()
-        UI.setAttribute("startPauseBtn2", "text", "‖")
-    end
-end
-
-function startTimer2()
-    if running2 then return end
-    running2 = true
-    Timer.destroy(timerID2)
-    Timer.create({
-        identifier = timerID2,
-        function_name = "tick2",
-        function_owner = Global,
-        delay = 1,
-        repetitions = 0
-    })
-end
-
-function pauseTimer2()
-    running2 = false
-    Timer.destroy(timerID2)
-end
-
-function resetTimer2(player, value, id)
-    pauseTimer2()
-    currentTime2 = duration2
-    UI.setAttribute("startPauseBtn2", "text", "▶︎")
-    updateTimeDisplay2()
-end
-
-function tick2()
-    if not running2 then return end
-    currentTime2 = currentTime2 - 1
-    updateTimeDisplay2()
-
-    if currentTime2 <= 0 then
-        running2 = false
-        Timer.destroy(timerID2)
-        UI.setAttribute("startPauseBtn2", "text", "▶︎")
-        broadcastToAll("⏰ Blue timer (12 min) is up!", {0.5,0.5,1})
-    end
-end
-
-buttonObjectGUID = "2df093"  -- replace with your object's GUID
+buttonObjectGUID = "2df093"
 
 rollBuffer = {}
 rollActive = false
