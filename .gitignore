@@ -1,0 +1,9 @@
+# tts-editor generated output
+.tts/bundled/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
