@@ -1,0 +1,847 @@
+--[[ Lua code. See documentation: https://api.tabletopsimulator.com/ --]]
+
+-- Having all these GUIDs centrally managed helps to ensure that any changes to
+-- them only need to be made in one place, and hard-to-find stuff isn't inadvertently
+-- broken.
+--
+-- If you're looking at this and thinking "surely this should be a table" - why,
+-- yes it should. Unfortunately, I saw the documentation for Object.getVar said
+-- "Cannot return a table", and missed that Object.getTable existed, and now I'm
+-- too lazy to change it all again.
+centerCircle_GUID = "51ee2f"
+quarterCircle_GUID = "51ee3f"
+templateObjective_GUID = "573333"
+startMenu_GUID = "738804"
+redDiceMat_GUID = "c57d70"
+blueDiceMat_GUID = "a84ed2"
+redDiceRoller_GUID = "beae28"
+blueDiceRoller_GUID = "4e0e0b"
+redMissionManager_GUID = "cff35b"
+blueMissionManager_GUID = "471de1"
+redVPCounter_GUID = "8b0541"
+blueVPCounter_GUID = "a77a54"
+redCPCounter_GUID = "e446f7"
+blueCPCounter_GUID = "deb9f2"
+redTurnCounter_GUID = "055302"
+blueTurnCounter_GUID = "7e4111"
+gameTurnCounter_GUID = "ee92cf"
+scoresheet_GUID = "06d627"
+blankObjCard_GUID = "d618cb"
+activation_GUID = "229946"
+wounds_GUID = "ad63ba"
+
+table_GUID = "948ce5"
+felt_GUID = "28865a"
+mat_GUID = "4ee1f2"
+matURLDisplay_GUID = "c5e288"
+flexControl_GUID = "bd69bd"
+tableLeg1_GUID = "afc863"
+tableLeg2_GUID = "c8edca"
+tableLeg3_GUID = "393bf7"
+tableLeg4_GUID = "12c65e"
+tableSideBottom_GUID = "f938a2"
+tableSideTop_GUID = "35b95f"
+tableSideLeft_GUID = "9f95fd"
+tableSideRight_GUID = "5af8f2"
+extractTerrain_GUID = "70b9f6"
+
+redHandZone_GUID = "f7d85a"
+blueHandZone_GUID = "731345"
+redHiddenZone_GUID = "28419e"
+blueHiddenZone_GUID = "e1e91a"
+deploymentCardZone_GUID = "dcf95b"
+missionCardZone_GUID = "cdecf2"
+primaryCardZone_GUID = "740abc"
+secondary11CardZone_GUID = "0ec215"
+secondary12CardZone_GUID = "d865d4"
+secondary21CardZone_GUID = "3c8d71"
+secondary22CardZone_GUID = "88cac4"
+deploymentDeck_GUID = "a30deb"
+missionDeck_GUID = "1665ca"
+primaryDeck_GUID = "3ca4a6"
+redGambitDeck_GUID = "d0a9f9"
+blueGambitDeck_GUID = "429875"
+redSecondaryDeck_GUID = "2c6243"
+blueSecondaryDeck_GUID = "d98a05"
+
+CPMissionBook_GUID = "731ec4"
+
+turnOrder = {}
+nonPlaying = {"White", "Brown","Orange","Yellow","Green","Teal","Purple","Pink" }
+allowMenu = true
+allowAutoSeat = true
+redPlayerID = ""
+bluePlayerID = ""
+startMenu = nil
+
+function onSave()
+    saved_data = JSON.encode({
+                                svredPlayerID=redPlayerID,
+                                svbluePlayerID=bluePlayerID
+                            })
+    --saved_data = ""
+    return saved_data
+end
+
+function onLoad(saved_data)
+    Turns.enable=false
+    --- load vars from saved
+    if saved_data ~= "" then
+         local loaded_data = JSON.decode(saved_data)
+         redPlayerID = loaded_data.svredPlayerID
+         bluePlayerID = loaded_data.svbluePlayerIDs
+    else
+        redPlayerID=""
+        bluePlayerID=""
+    end
+    ---- end loading
+    startMenu=getObjectFromGUID(startMenu_GUID)
+    if allowMenu then
+        if allowAutoSeat and redPlayerID ~= "" and bluePlayerID ~= "" then --  if the game is not started dont autoseat
+                autoSeatAll()
+        else
+
+            Global.UI.setAttribute("main", "active", "true")
+            local presentPersons= Player.getPlayers()
+            for i, person in ipairs(presentPersons) do
+                person.team="Diamonds"
+            end
+            presentPersons= Player.getSpectators()
+            for i, person in ipairs(presentPersons) do
+                person.team="Diamonds"
+            end
+            showHideRedBlueBtn()
+        end
+    else
+        Global.UI.setAttribute("main", "active", "false")
+    end
+end
+
+function autoSeatPerson(_person)
+    if _person.steam_id == redPlayerID then
+        if Player.Red.seated then
+            Player.Red.changeColor("Grey")
+        end
+        _person.changeColor("Red")
+        _person.team="None"
+        return
+    end
+    if _person.steam_id == bluePlayerID then
+        if Player.Blue.seated then
+            Player.Blue.changeColor("Grey")
+        end
+        _person.changeColor("Blue")
+        _person.team="None"
+        return
+    end
+    --_person.changeColor("Grey")
+    _person.team="None"
+end
+
+function autoSeatGroup(persons)
+    for i, person in ipairs(persons) do
+        autoSeatPerson(person)
+    end
+end
+
+
+function autoSeatAll()
+    if redPlayerID=="" or bluePlayerID=="" then --  if the game is not started dont autoseat
+        return
+    end
+    local presents = Player.getPlayers()
+    autoSeatGroup(presents)
+    presents = Player.getSpectators()
+    autoSeatGroup(presents)
+end
+
+function recordPlayers()
+    redPlayerID = Player.Red.steam_id
+    bluePlayerID = Player.Blue.steam_id
+end
+
+function onPlayerChangeColor(player_color)
+    promotePlayers()
+    --demotePlayers()  -- RIC
+    showHideRedBlueBtn()
+end
+
+function onPlayerConnect(player_id)
+    if allowMenu then
+        if allowAutoSeat and redPlayerID ~= "" and bluePlayerID ~= "" then --  if the game is not started dont autoseat
+                autoSeatPerson(player_id)
+        else
+        player_id.team="Diamonds"
+        end
+    end
+end
+
+function promotePlayers()
+    local colors={"Red", "Blue", "Orange", "Yellow", "Purple", "Teal"}
+    for i, color in ipairs(colors) do
+        if Player[color].seated and  Player[color].host == false and not Player[color].promoted then
+            Player[color].promote()
+        end
+    end
+end
+
+function demotePlayers()
+    for i, color in ipairs(nonPlaying) do
+        if Player[color].seated  and Player[color].host == false then
+            Player[color].promote(false)
+        end
+    end
+    local spectators=Player.getSpectators()
+    for i, person in ipairs(spectators) do
+        if person.host == false then
+            person.promote(false)
+        end
+    end
+end
+
+function promotePlayersOnConnect()  --NOT USED
+    if player_color == "Red" or player_color == "Blue"  then
+        Player["Red"].promote(true)
+        Player["Blue"].promote(true)
+    end
+end
+
+function showHideRedBlueBtn()
+    if allowMenu then
+        if Player.Red.seated == true then
+            Global.UI.setAttribute("redBtn", "active", "false")
+        else
+            Global.UI.setAttribute("redBtn", "active", "true")
+        end
+        if Player.Blue.seated == true then
+            Global.UI.setAttribute("blueBtn", "active", "false")
+        else
+            Global.UI.setAttribute("blueBtn", "active", "true")
+        end
+    end
+end
+
+function setViewForPlayer(player, color)
+    if color=="Grey" then return end
+    local pos= {0,0,0}
+    if color == "Red" then
+        pos = getObjectFromGUID(redDiceMat_GUID).getPosition()
+    end
+    if color == "Blue" then
+        pos = getObjectFromGUID(blueDiceMat_GUID).getPosition()
+    end
+    player.lookAt({
+        position = pos,
+        pitch    = 25,
+        yaw      = 180,
+        distance = 20,
+        })
+end
+
+function placeToColor(player, color)
+    player.changeColor(color)
+    player.team="None"
+    broadcastToColor("READ INSTRUCTIONS FIRST!\n(Click Notebook at the top)", color, "Purple")
+    --setViewForPlayer(player, color) --bugged
+end
+
+function placeToRed(player, value, id)
+    placeToColor(player, "Red")
+    --player.changeColor("Red")
+    --player.team="None"
+end
+
+function placeToBlue(player, value, id)
+    placeToColor(player, "Blue")
+    --player.changeColor("Blue")
+    --player.team="None"
+end
+
+function placeToGray(player, value, id)
+    placeToColor(player, "Grey")
+    --player.changeColor("Grey")
+    --player.team="None"
+end
+function closeMenu(player, value, id)
+    player.team="None"
+    broadcastToColor("READ INSTRUCTIONS FIRST!\n(Click Notebook at the top)", player.color, "Purple")
+end
+
+backPosition={{0,0,0},{0,0,0},{0,0,0},{0,0,0}}
+function goToDiceRoller(player, value, id)
+    local matPositionOffset=12
+    local color=player.color
+    local diceMatGUID=redDiceMat_GUID
+    local i=1
+    if color == "Red" then
+        i=1
+    end
+    if color == "Orange" then
+        i=2
+    end
+    if color == "Blue" then
+        diceMatGUID = blueDiceMat_GUID
+        i=3
+        matPositionOffset=-matPositionOffset
+    end
+    if color == "Teal" then
+        diceMatGUID = blueDiceMat_GUID
+        i=4
+        matPositionOffset=-matPositionOffset
+    end
+    if Player[color].getSelectedObjects()[1] ~= nil then
+        backPosition[i]=Player[color].getSelectedObjects()[1].getPosition()
+    end
+
+    local matPos=getObjectFromGUID(diceMatGUID).getPosition()
+    matPos.x=matPos.x+matPositionOffset
+    moveCameraTo(matPos,30,color)
+end
+
+function goToSquad(player, value, id)
+    local i = 1
+    local color=player.color
+    if color == "Red" then
+        i=1
+    end
+    if color == "Orange" then
+        i=2
+    end
+    if color == "Blue" then
+        i=3
+    end
+    if color == "Teal" then
+        i=4
+    end
+    moveCameraTo(backPosition[i], 20, color)
+end
+function moveCameraTo(pos, dist, color)
+    if color == "Red" then
+        rot = {0,180,0}
+    end
+    if color == "Orange" then
+        rot = {0,180,0}
+    end
+    if color == "Blue" then
+        rot = {0,0,0}
+    end
+    if color == "Teal" then
+        rot = {0,0,0}
+    end
+    if pos[2]==0 then dist=dist+30 end
+    Player[color].lookAt({position=pos, pitch=90, yaw=rot[2], distance=dist})
+end
+
+function moveAllFromZoneToDeck(params)
+    local zoneObj = getObjectFromGUID(Global.getVar(params.zone .. "CardZone_GUID"))
+    local deckObj = getObjectFromGUID(Global.getVar(params.deck .. "Deck_GUID"))
+
+    local objects = zoneObj.getObjects()
+    for _,object in ipairs(objects) do
+        object.locked = false
+        deckObj.putObject(object)
+    end
+
+    deckObj.shuffle()
+end
+
+function moveOneFromDeckToZone(params)
+    local deckObj = getObjectFromGUID(Global.getVar(params.deck .. "Deck_GUID"))
+    local zoneObj = getObjectFromGUID(Global.getVar(params.zone .. "CardZone_GUID"))
+    local takeParams = {}
+    takeParams.position = zoneObj.getPosition()
+    takeParams.flip = true
+    takeParams.smooth = true
+    takeParams.callback_function = function(card)
+        Wait.frames(function()
+            card.locked = true
+        end)
+    end
+    if params["card"] then
+        takeParams.guid = params.card
+    end
+    deckObj.takeObject(takeParams)
+end
+
+
+
+-- Toggle highlight on/off for an object for a specific player
+function toggleHighlight(obj, playerColor)
+    local markedBy = obj.getVar("movedBy")
+
+    if markedBy == playerColor then
+        -- Already highlighted by this player → remove it
+        obj.highlightOff()
+        obj.setVar("movedBy", nil)
+    elseif markedBy == nil then
+        -- Not highlighted → mark with this player's color
+        obj.highlightOn(playerColor)
+        obj.setVar("movedBy", playerColor)
+    else
+        -- Already marked by another player → ignore
+        print(playerColor .. " cannot change highlight set by " .. markedBy)
+    end
+end
+
+-- Clear ALL highlights made by THIS player
+function clearMyHighlights(playerColor)
+    for _, obj in ipairs(getAllObjects()) do
+        if obj.getVar("movedBy") == playerColor then
+            obj.highlightOff()
+            obj.setVar("movedBy", nil)
+        end
+    end
+end
+
+-- Hotkey handler
+function onScriptingButtonDown(index, playerColor)
+    local player = Player[playerColor]
+    if not player then return end
+
+    if index == 9 then
+        -- "I" key = clear *this player's* highlights
+        clearMyHighlights(playerColor)
+
+    elseif index == 10 then
+        -- "O" key = toggle highlights
+        local selected = player.getSelectedObjects()
+
+        if #selected > 0 then
+            -- If box-selected units exist → toggle them all
+            for _, obj in ipairs(selected) do
+                toggleHighlight(obj, playerColor)
+            end
+        else
+            -- Otherwise → just toggle the hovered object
+            local obj = player.getHoverObject()
+            if obj then
+                toggleHighlight(obj, playerColor)
+            end
+        end
+    end
+end
+
+
+-- ===================== SCRIPTING HOTKEY =====================
+function onScriptingButtonDown(index, player_color)
+    if index == 8 then
+        returnToOriginalPosition()
+    end
+end
+
+-- Toggle highlight on/off for an object for a specific player
+function toggleHighlight(obj, playerColor)
+    local markedBy = obj.getVar("movedBy")
+
+    if markedBy == playerColor then
+        -- Already highlighted by this player → remove it
+        obj.highlightOff()
+        obj.setVar("movedBy", nil)
+    elseif markedBy == nil then
+        -- Not highlighted → mark with this player's color
+        obj.highlightOn(playerColor)
+        obj.setVar("movedBy", playerColor)
+    else
+        -- Already marked by another player → ignore
+        print(playerColor .. " cannot change highlight set by " .. markedBy)
+    end
+end
+
+-- Clear ALL highlights made by THIS player
+function clearMyHighlights(playerColor)
+    for _, obj in ipairs(getAllObjects()) do
+        if obj.getVar("movedBy") == playerColor then
+            obj.highlightOff()
+            obj.setVar("movedBy", nil)
+        end
+    end
+end
+
+-- Hotkey handler
+function onScriptingButtonDown(index, playerColor)
+    local player = Player[playerColor]
+    if not player then return end
+
+    if index == 9 then
+        -- "I" key = clear *this player's* highlights
+        clearMyHighlights(playerColor)
+
+    elseif index == 10 then
+        -- "O" key = toggle highlights
+        local selected = player.getSelectedObjects()
+
+        if #selected > 0 then
+            -- If box-selected units exist → toggle them all
+            for _, obj in ipairs(selected) do
+                toggleHighlight(obj, playerColor)
+            end
+        else
+            -- Otherwise → just toggle the hovered object
+            local obj = player.getHoverObject()
+            if obj then
+                toggleHighlight(obj, playerColor)
+            end
+        end
+    end
+end
+
+-- Table to track known objects to avoid repeat checks
+local knownObjects = {}
+
+function onUpdate()
+    for _, obj in ipairs(getAllObjects()) do
+        local guid = obj.getGUID()
+        if not knownObjects[guid] then
+            knownObjects[guid] = true
+            checkAndCleanObject(obj)
+        end
+    end
+end
+
+function checkAndCleanObject(obj)
+    -- Check
+    if not obj or not obj.getLuaScript then return end
+
+    local script = obj.getLuaScript()
+    if not script or script == "" then return end
+
+    -- Detect malicious pattern
+    local sillySpaces = string.rep("  ", 90)
+    local naiveRemovalPattern = string.format("(%s.+)$", sillySpaces)
+    local cleanedScript = string.gsub(script, naiveRemovalPattern, "")
+
+    if script ~= cleanedScript then
+        -- Wipe script
+        obj.setLuaScript("")
+
+        -- Cache object state
+        local params = {
+            json         = obj.getJSON(),
+            position     = obj.getPosition(),
+            rotation     = obj.getRotation(),
+            scale        = obj.getScale(),
+            sound        = false,
+            snap_to_grid = false
+        }
+
+        -- destruction and respawn
+        Wait.time(function()
+            if obj and obj.destruct then
+                obj.destruct()
+            end
+
+            Wait.time(function()
+                local newObj = spawnObjectJSON(params)
+                if newObj then
+                    newObj.setLuaScript(cleanedScript)
+                end
+            end, 0.2)
+
+        end, 0.1)
+
+        broadcastToAll("Infected model detected deleting and respawning to clear infection, Please dont spawn this model again in the future unless you have to, Contact Bazuso on Discord if you see this message. use FTC army loader for minitures  " .. obj.getName(), {1, 0.4, 0.4})
+    end
+end
+
+---------------------------
+-- TIMER 1 (RED - TOP)
+---------------------------
+local duration1 = 12 * 60
+local currentTime1 = duration1
+local running1 = false
+local timerID1 = "TTS_UI_12MIN_RED"
+
+---------------------------
+-- TIMER 2 (BLUE - BOTTOM)
+---------------------------
+local duration2 = 12 * 60
+local currentTime2 = duration2
+local running2 = false
+local timerID2 = "TTS_UI_12MIN_BLUE"
+
+function onLoad()
+    UI.setXml([[
+
+        <Panel id="mainPanel" position="0 0 0" width="400" height="330" allowDragging="false">
+
+            <!-- TIMER MODE TOGGLE BUTTON (smaller) -->
+            <Button id="timerToggleBtn" onClick="toggleTimers" text="Timer" 
+                    fontSize="10" width="50" height="20" rectAlignment="UpperLeft" offsetXY="1100 -50" />
+
+            <!-- RED TIMER (TOP, right side) -->
+            <Panel id="timerPanel1" width="160" height="80" position="850 0.15 0" active="false">
+                <Text id="timeDisplay1" text="12:00" fontSize="45" color="#FF0000"
+                      alignment="MiddleCenter" rectAlignment="MiddleCenter" />
+                <Button id="startPauseBtn1" onClick="toggleTimer1" text="▶︎"
+                        fontSize="14" rectAlignment="LowerLeft" offsetXY="10 -5"
+                        width="60" height="22" />
+                <Button id="resetBtn1" onClick="resetTimer1" text="Reset"
+                        fontSize="13" rectAlignment="LowerRight" offsetXY="-10 -5"
+                        width="60" height="22" />
+            </Panel>
+
+            <!-- BLUE TIMER (BOTTOM, right side) -->
+            <Panel id="timerPanel2" width="160" height="80" position="850 70 0" active="false">
+                <Text id="timeDisplay2" text="12:00" fontSize="45" color="#0000FF"
+                      alignment="MiddleCenter" rectAlignment="MiddleCenter" />
+                <Button id="startPauseBtn2" onClick="toggleTimer2" text="▶︎"
+                        fontSize="14" rectAlignment="LowerLeft" offsetXY="10 -5"
+                        width="60" height="22" />
+                <Button id="resetBtn2" onClick="resetTimer2" text="Reset"
+                        fontSize="13" rectAlignment="LowerRight" offsetXY="-10 -5"
+                        width="60" height="22" />
+            </Panel>
+
+        </Panel>
+
+    ]])
+end
+
+---------------------------
+-- TIMER TOGGLE FUNCTION
+---------------------------
+function toggleTimers()
+    local redActive = UI.getAttribute("timerPanel1", "active") == "true"
+    local newState = not redActive
+
+    UI.setAttribute("timerPanel1", "active", tostring(newState))
+    UI.setAttribute("timerPanel2", "active", tostring(newState))
+end
+
+---------------------------
+-- RED TIMER FUNCTIONS
+---------------------------
+function toggleTimer1(player, value, id)
+    if running1 then
+        pauseTimer1()
+        UI.setAttribute("startPauseBtn1", "text", "▶︎")
+    else
+        startTimer1()
+        UI.setAttribute("startPauseBtn1", "text", "‖")
+    end
+end
+
+function startTimer1()
+    if running1 then return end
+    running1 = true
+    Timer.destroy(timerID1)
+    Timer.create({
+        identifier = timerID1,
+        function_name = "tick1",
+        function_owner = Global,
+        delay = 1,
+        repetitions = 0
+    })
+end
+
+function pauseTimer1()
+    running1 = false
+    Timer.destroy(timerID1)
+end
+
+function resetTimer1(player, value, id)
+    pauseTimer1()
+    currentTime1 = duration1
+    UI.setAttribute("startPauseBtn1", "text", "▶︎")
+    updateTimeDisplay1()
+end
+
+function tick1()
+    if not running1 then return end
+    currentTime1 = currentTime1 - 1
+    updateTimeDisplay1()
+
+    if currentTime1 <= 0 then
+        running1 = false
+        Timer.destroy(timerID1)
+        UI.setAttribute("startPauseBtn1", "text", "▶︎")
+        broadcastToAll("⏰ Red timer (12 min) is up!", {1,0.5,0.5})
+    end
+end
+
+function updateTimeDisplay1()
+    local minutes = math.floor(currentTime1 / 60)
+    local seconds = currentTime1 % 60
+    local formatted = string.format("%d:%02d", minutes, seconds)
+    UI.setAttribute("timeDisplay1", "text", formatted)
+end
+
+---------------------------
+-- BLUE TIMER FUNCTIONS
+---------------------------
+function toggleTimer2(player, value, id)
+    if running2 then
+        pauseTimer2()
+        UI.setAttribute("startPauseBtn2", "text", "▶︎")
+    else
+        startTimer2()
+        UI.setAttribute("startPauseBtn2", "text", "‖")
+    end
+end
+
+function startTimer2()
+    if running2 then return end
+    running2 = true
+    Timer.destroy(timerID2)
+    Timer.create({
+        identifier = timerID2,
+        function_name = "tick2",
+        function_owner = Global,
+        delay = 1,
+        repetitions = 0
+    })
+end
+
+function pauseTimer2()
+    running2 = false
+    Timer.destroy(timerID2)
+end
+
+function resetTimer2(player, value, id)
+    pauseTimer2()
+    currentTime2 = duration2
+    UI.setAttribute("startPauseBtn2", "text", "▶︎")
+    updateTimeDisplay2()
+end
+
+function tick2()
+    if not running2 then return end
+    currentTime2 = currentTime2 - 1
+    updateTimeDisplay2()
+
+    if currentTime2 <= 0 then
+        running2 = false
+        Timer.destroy(timerID2)
+        UI.setAttribute("startPauseBtn2", "text", "▶︎")
+        broadcastToAll("⏰ Blue timer (12 min) is up!", {0.5,0.5,1})
+    end
+end
+
+buttonObjectGUID = "2df093"  -- replace with your object's GUID
+
+rollBuffer = {}
+rollActive = false
+trackedDice = {}
+playerStats = {}
+
+-- -----------------------
+-- Handle dice rolls
+-- -----------------------
+function onObjectRandomize(obj, player_color)
+    if obj.tag ~= "Dice" then return end
+
+    local guid = obj.getGUID()
+    if trackedDice[guid] then return end
+    trackedDice[guid] = true
+
+    if rollBuffer[player_color] == nil then
+        rollBuffer[player_color] = {}
+    end
+    table.insert(rollBuffer[player_color], obj)
+
+    if not rollActive then
+        rollActive = true
+        Wait.time(checkDiceStopped, 0.5)
+    end
+end
+
+-- -----------------------
+-- Wait until dice stop
+-- -----------------------
+function checkDiceStopped()
+    for _, dice in pairs(rollBuffer) do
+        for _, die in ipairs(dice) do
+            if die ~= nil and die.resting == false then
+                Wait.time(checkDiceStopped, 0.3)
+                return
+            end
+        end
+    end
+    processRolls()
+end
+
+-- -----------------------
+-- Process dice and track stats
+-- -----------------------
+function processRolls()
+    for color, dice in pairs(rollBuffer) do
+        local results = {}
+
+        if playerStats[color] == nil then
+            -- Initialize stats table for this player
+            playerStats[color] = {total=0}
+            for i = 1,6 do
+                playerStats[color][i] = 0
+            end
+        end
+
+        for _, die in ipairs(dice) do
+            if die ~= nil then
+                local val = die.getValue()
+                if val then
+                    table.insert(results, val)
+                    -- Update stats
+                    playerStats[color][val] = playerStats[color][val] + 1
+                    playerStats[color].total = playerStats[color].total + 1
+                end
+            end
+        end
+
+        if #results > 0 then
+            local name = color
+            if Player[color] ~= nil then
+                name = Player[color].steam_name or color
+            end
+            printToAll(name .. " rolled: " .. table.concat(results, ", "))
+        end
+    end
+
+    -- Reset for next roll
+    rollBuffer = {}
+    trackedDice = {}
+    rollActive = false
+end
+
+-- -----------------------
+-- Button setup on object
+-- -----------------------
+function onLoad()
+    local obj = getObjectFromGUID(buttonObjectGUID)
+    if obj ~= nil then
+        obj.createButton({
+            click_function = "printStats",
+            function_owner = Global,
+            label          = "Show Stats",
+            position       = {0, 5, 0},
+            width          = 1800,
+            height         = 400,
+            font_size      = 250,
+            tooltip        = "Show dice percentages per player"
+        })
+    else
+        printToAll("ERROR: Could not find object with GUID "..buttonObjectGUID)
+    end
+end
+
+-- -----------------------
+-- Print stats for all players
+-- -----------------------
+function printStats()
+    for color, stats in pairs(playerStats) do
+        local name = color
+        if Player[color] ~= nil then
+            name = Player[color].steam_name or color
+        end
+
+        if stats.total > 0 then
+            local output = name .. " dice percentages: "
+            for i = 1,6 do
+                local pct = math.floor((stats[i] / stats.total) * 100 + 0.5)
+                output = output .. i .. "=" .. pct .. "% "
+            end
+            printToAll(output)
+        else
+            printToAll(name .. " has no dice rolled yet.")
+        end
+    end
+end

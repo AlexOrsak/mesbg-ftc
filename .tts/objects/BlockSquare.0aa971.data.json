@@ -1,0 +1,45 @@
+{
+  "GUID": "0aa971",
+  "Name": "BlockSquare",
+  "Transform": {
+    "posX": 25.5953026,
+    "posY": 0.287843227,
+    "posZ": -17.5577145,
+    "rotX": 0.00000271911813,
+    "rotY": 2.029789e-8,
+    "rotZ": -4.0109083e-7,
+    "scaleX": 1,
+    "scaleY": 1,
+    "scaleZ": 1
+  },
+  "Nickname": "",
+  "Description": "",
+  "GMNotes": "",
+  "AltLookAngle": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "ColorDiffuse": {
+    "r": 0.9264706,
+    "g": 0,
+    "b": 0
+  },
+  "LayoutGroupSortIndex": 0,
+  "Value": 0,
+  "Locked": true,
+  "Grid": true,
+  "Snap": true,
+  "IgnoreFoW": false,
+  "MeasureMovement": false,
+  "DragSelectable": true,
+  "Autoraise": true,
+  "Sticky": true,
+  "Tooltip": true,
+  "GridProjection": false,
+  "HideWhenFaceDown": false,
+  "Hands": false,
+  "LuaScript": "--------------------------\r\n-- CONFIG\r\n--------------------------\r\n\r\nRED_GRAVEYARD_POS  = { x = 35.47, y = 5.46, z = 24.92 }\r\nBLUE_GRAVEYARD_POS = { x = 35.50, y = 5.46, z = -26.55 }\r\n\r\n-- Real zone GUIDs\r\nRED_GRAVEYARD_ZONE_GUID  = \"7a8ed4\"\r\nBLUE_GRAVEYARD_ZONE_GUID = \"92d8b0\"\r\n\r\nSTACK_GAP = 0.2\r\nBASE_Y_OFFSET = 0.0\r\n\r\n\r\n--------------------------\r\n-- INPUT HANDLER\r\n--------------------------\r\n\r\nfunction onScriptingButtonDown(index, playerColor)\r\n    if index ~= 7 then return end\r\n\r\n    if playerColor ~= \"Red\" and playerColor ~= \"Blue\" then\r\n        broadcastToColor(\"Only Red and Blue have graveyards.\", playerColor, {1, 0, 0})\r\n        return\r\n    end\r\n\r\n    local targetPos = (playerColor == \"Red\") and RED_GRAVEYARD_POS or BLUE_GRAVEYARD_POS\r\n\r\n    -- First: selected objects\r\n    local selected = Player[playerColor].getSelectedObjects()\r\n    if selected and #selected > 0 then\r\n        local moved = sendSelectionToGraveyard(selected, targetPos, playerColor)\r\n        if moved > 0 then scheduleGraveyardCount(playerColor) end\r\n        return\r\n    end\r\n\r\n    -- Fallback: hovered model\r\n    local hovered = Player[playerColor].getHoverObject()\r\n    if hovered == nil then\r\n        broadcastToColor(\"Select models or hover one, then press 7.\", playerColor, {1, 1, 1})\r\n        return\r\n    end\r\n\r\n    if hovered.getLock() then\r\n        broadcastToColor(\"That object is locked and cannot be moved.\", playerColor, {1, 0.5, 0})\r\n        return\r\n    end\r\n\r\n    sendHoveredToGraveyard(hovered, targetPos, playerColor)\r\n    scheduleGraveyardCount(playerColor)\r\nend\r\n\r\n\r\n--------------------------\r\n-- MOVE: SELECTION\r\n--------------------------\r\n\r\nfunction sendSelectionToGraveyard(objects, basePos, playerColor)\r\n    local currentHeight = 0\r\n    local movedCount = 0\r\n\r\n    for _, obj in ipairs(objects) do\r\n        if not obj.getLock() then\r\n            local bounds = obj.getBounds()\r\n            local height = (bounds and bounds.size and bounds.size.y) or 1\r\n\r\n            local target = {\r\n                basePos.x,\r\n                basePos.y + BASE_Y_OFFSET + currentHeight + height/2,\r\n                basePos.z\r\n            }\r\n\r\n            obj.setPositionSmooth(target, false, false)\r\n            obj.setRotationSmooth({0,180,0}, false, false)\r\n\r\n            currentHeight = currentHeight + height + STACK_GAP\r\n            movedCount   = movedCount + 1\r\n        end\r\n    end\r\n\r\n    return movedCount\r\nend\r\n\r\n\r\n--------------------------\r\n-- MOVE: HOVERED\r\n--------------------------\r\n\r\nfunction sendHoveredToGraveyard(obj, basePos, playerColor)\r\n    local bounds = obj.getBounds()\r\n    local height = (bounds and bounds.size and bounds.size.y) or 1\r\n\r\n    local target = {\r\n        basePos.x,\r\n        basePos.y + height/2,\r\n        basePos.z\r\n    }\r\n\r\n    obj.setPositionSmooth(target, false, false)\r\n    obj.setRotationSmooth({0,180,0}, false, false)\r\nend\r\n\r\n\r\n--------------------------\r\n-- DEAD PILE COUNTING\r\n--------------------------\r\n\r\nfunction scheduleGraveyardCount(playerColor)\r\n    Wait.time(function() graveyardCountNow(playerColor) end, 2)\r\nend\r\n\r\nfunction graveyardCountNow(playerColor)\r\n    local zoneGuid = (playerColor == \"Red\") and RED_GRAVEYARD_ZONE_GUID or BLUE_GRAVEYARD_ZONE_GUID\r\n    local zone = getObjectFromGUID(zoneGuid)\r\n\r\n    if not zone then\r\n        printToColor(\"Dead pile zone missing for \" .. playerColor .. \".\", playerColor)\r\n        return\r\n    end\r\n\r\n    local objs = zone.getObjects()\r\n    local count = 0\r\n\r\n    -- Count **only unlocked**\r\n    for _, obj in ipairs(objs) do\r\n        if not obj.getLock() then\r\n            count = count + 1\r\n        end\r\n    end\r\n\r\n    -- ✔ PRINT TO CHAT ONLY (no on-screen popup)\r\n    printToColor(playerColor .. \" dead pile: \" .. tostring(count), playerColor)\r\nend\r\n",
+  "LuaScriptState": "",
+  "XmlUI": ""
+}

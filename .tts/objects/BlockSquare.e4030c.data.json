@@ -1,0 +1,45 @@
+{
+  "GUID": "e4030c",
+  "Name": "BlockSquare",
+  "Transform": {
+    "posX": 80.99796,
+    "posY": 0.35,
+    "posZ": 18.3781834,
+    "rotX": 3.443757e-8,
+    "rotY": 313.231262,
+    "rotZ": 0.00000202235265,
+    "scaleX": 14.271698,
+    "scaleY": 1,
+    "scaleZ": 8.003777
+  },
+  "Nickname": "",
+  "Description": "",
+  "GMNotes": "",
+  "AltLookAngle": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "ColorDiffuse": {
+    "r": 0.213470876,
+    "g": 0.225983977,
+    "b": 0.235187173
+  },
+  "LayoutGroupSortIndex": 0,
+  "Value": 0,
+  "Locked": true,
+  "Grid": true,
+  "Snap": true,
+  "IgnoreFoW": false,
+  "MeasureMovement": false,
+  "DragSelectable": true,
+  "Autoraise": true,
+  "Sticky": true,
+  "Tooltip": true,
+  "GridProjection": false,
+  "HideWhenFaceDown": false,
+  "Hands": false,
+  "LuaScript": "function onLoad()\r\nself.interactable = false\r\nend",
+  "LuaScriptState": "",
+  "XmlUI": ""
+}

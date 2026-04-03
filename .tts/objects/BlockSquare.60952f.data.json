@@ -1,0 +1,45 @@
+{
+  "GUID": "60952f",
+  "Name": "BlockSquare",
+  "Transform": {
+    "posX": 71.87839,
+    "posY": -0.584205866,
+    "posZ": -25.0045319,
+    "rotX": -0.0000206878431,
+    "rotY": 270,
+    "rotZ": 0.000001937441,
+    "scaleX": 1,
+    "scaleY": 1,
+    "scaleZ": 1
+  },
+  "Nickname": "",
+  "Description": "",
+  "GMNotes": "",
+  "AltLookAngle": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "ColorDiffuse": {
+    "r": 0.9264706,
+    "g": 0,
+    "b": 0
+  },
+  "LayoutGroupSortIndex": 0,
+  "Value": 0,
+  "Locked": true,
+  "Grid": true,
+  "Snap": true,
+  "IgnoreFoW": false,
+  "MeasureMovement": false,
+  "DragSelectable": true,
+  "Autoraise": true,
+  "Sticky": true,
+  "Tooltip": true,
+  "GridProjection": false,
+  "HideWhenFaceDown": false,
+  "Hands": false,
+  "LuaScript": "-- Replace with your actual bag's GUID\r\nlocal MODEL_BAG_GUID = '24f6d0'\r\nlocal NOTE_NAME = \"ArmyList\" -- Name of the Notebook tab to read from\r\n\r\nfunction onLoad()\r\n    self.createButton({\r\n        label = \"Spawn Army\",\r\n        click_function = \"spawnFromNotebook\",\r\n        function_owner = self,\r\n        position = {0, 5, 0},\r\n        rotation = {0, 180, 0},\r\n        width = 1800,\r\n        height = 400,\r\n        font_size = 250\r\n    })\r\nend\r\n\r\nfunction spawnFromNotebook(obj, playerColor)\r\n    local pages = getNotebookTabs()\r\n    for _, page in ipairs(pages) do\r\n        if page.title == NOTE_NAME then\r\n            processList(page.body, playerColor)\r\n            return\r\n        end\r\n    end\r\n    broadcastToColor(\"❌ Notebook page '\" .. NOTE_NAME .. \"' not found.\", playerColor, {1, 0, 0})\r\nend\r\n\r\nfunction processList(text, color)\r\n    local bag = getObjectFromGUID(MODEL_BAG_GUID)\r\n    if not bag then\r\n        broadcastToColor(\"❌ Error: Model bag not found!\", color, {1, 0, 0})\r\n        return\r\n    end\r\n\r\n    local warbands = {}\r\n    local heroCount = {}\r\n    local currentHeroKey = nil\r\n    local totalModels = 0\r\n    local lines = {}\r\n\r\n    -- Collect all parentheses-wrapped lines and trim spaces\r\n    for line in string.gmatch(text, \"[^\\r\\n]+\") do\r\n        local firstChar = 0\r\n        local secondChar = 0\r\n        for i = 1, #line do\r\n          local c = line:sub(i,i)\r\n          if (c == \"(\") then\r\n            firstChar = i\r\n          elseif (c == \")\") then\r\n            secondChar = i\r\n          end\r\n        end\r\n        line = line:sub(firstChar+1, secondChar-1)\r\n        while true do\r\n          local c = line:sub(1,1)\r\n          if (c != \" \" and c != \"\\n\" and c != \"\\r\") then break end\r\n          line = line:sub(2)\r\n        end\r\n        while true do\r\n          local c = line:sub(-1)\r\n          if (c != \" \" and c != \"\\n\" and c != \"\\r\") then break end\r\n          line = line:sub(1, #line - 1)\r\n        end\r\n        if (line != nil and line != '') then\r\n          table.insert(lines, line)\r\n        end\r\n    end\r\n\r\n    -- Parse warbands\r\n    for _, line in ipairs(lines) do\r\n        if line:find(\"^%d+x\") then\r\n            local count, model = line:match(\"^(%d+)x%s+(.+)\")\r\n            if count and model and currentHeroKey then\r\n                model = model:gsub(\"%s*%([^%)]+%)\", \"\"):match(\"^%s*(.-)%s*$\")\r\n                table.insert(warbands[currentHeroKey].units, {count = tonumber(count), name = model})\r\n            end\r\n        else\r\n            local heroName = line:gsub(\"%s*%([^%)]+%)\", \"\")\r\n            if not heroCount[heroName] then\r\n                heroCount[heroName] = 1\r\n                currentHeroKey = heroName\r\n            else\r\n                heroCount[heroName] = heroCount[heroName] + 1\r\n                currentHeroKey = heroName .. \" (\" .. heroCount[heroName] .. \")\"\r\n            end\r\n            warbands[currentHeroKey] = { heroName = heroName, units = {} }\r\n        end\r\n    end\r\n\r\n    -- Positioning\r\n    local basePos = {\r\n        x = self.getPosition().x,\r\n        y = self.getPosition().y + 2,\r\n        z = self.getPosition().z + 4\r\n    }\r\n    local warbandSpacing = 8\r\n    local warbandsPerRow = 6\r\n    local rowSpacing = 10\r\n    local spawnQueue = {}\r\n    local warbandIndex = 0\r\n\r\n    for heroKey, data in pairs(warbands) do\r\n        local row = math.floor(warbandIndex / warbandsPerRow)\r\n        local col = warbandIndex % warbandsPerRow\r\n\r\n        local heroPos = {\r\n            x = basePos.x + row * rowSpacing,\r\n            y = basePos.y,\r\n            z = basePos.z + col * warbandSpacing\r\n        }\r\n\r\n        table.insert(spawnQueue, { name = data.heroName, count = 1, pos = heroPos })\r\n        totalModels = totalModels + 1\r\n\r\n        local modelIndex = 0\r\n        for _, entry in ipairs(data.units) do\r\n            for i = 1, entry.count do\r\n                local gridX = (modelIndex % 6) * 1.1\r\n                local gridZ = math.floor(modelIndex / 6) * 1.1 + 1.5\r\n                local modelPos = {\r\n                    x = heroPos.x + gridX,\r\n                    y = heroPos.y,\r\n                    z = heroPos.z + gridZ\r\n                }\r\n                table.insert(spawnQueue, { name = entry.name, count = 1, pos = modelPos })\r\n                totalModels = totalModels + 1\r\n                modelIndex = modelIndex + 1\r\n            end\r\n        end\r\n\r\n        warbandIndex = warbandIndex + 1\r\n    end\r\n\r\n    spawnNextFromQueue(bag, spawnQueue, color)\r\n\r\n    local breakPoint = math.floor(totalModels / 2) + 1\r\n    local quarterRemaining = math.floor(totalModels / 4)\r\n    broadcastToColor(\"📢 \" .. totalModels .. \" Models | \" .. breakPoint .. \" Break | \" .. quarterRemaining .. \" Remaining\", color, {0.2, 1, 0.2})\r\nend\r\n\r\nfunction spawnNextFromQueue(bag, queue, color)\r\n    if #queue == 0 then return end\r\n\r\n    local task = table.remove(queue, 1)\r\n    local contents = bag.getObjects()\r\n    for _, entry in ipairs(contents) do\r\n        local entry_name = string.lower(entry.name)\r\n        local task_name = string.lower(task.name)\r\n        if entry_name == task_name then\r\n            bag.takeObject({\r\n                index = entry.index,\r\n                position = task.pos,\r\n                smooth = false,\r\n                callback_function = function(original)\r\n                    original.setName(task.name)\r\n                    Wait.time(function()\r\n                        local clone = original.clone({ position = task.pos })\r\n                        clone.setName(task.name)\r\n                        Wait.time(function()\r\n                            if bag then\r\n                                bag.putObject(original)\r\n                            else\r\n                                original.destruct()\r\n                            end\r\n                            spawnNextFromQueue(bag, queue, color)\r\n                        end, 0.05)\r\n                    end, 0.05)\r\n                end\r\n            })\r\n            return\r\n        end\r\n    end\r\n\r\n    broadcastToColor(\"⚠️ Could not find: \" .. task.name, color, {1, 0.5, 0})\r\n    spawnNextFromQueue(bag, queue, color)\r\nend",
+  "LuaScriptState": "",
+  "XmlUI": ""
+}

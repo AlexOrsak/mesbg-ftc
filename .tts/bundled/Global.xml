@@ -1,0 +1,26 @@
+<!-- Xml UI. See documentation: https://api.tabletopsimulator.com/ui/introUI/ -->
+<Defaults>
+  <Button width="550" height="300" fontSize="40" onClick="" fontStyle="Bold"/>
+  <Text fontSize="100" color="#000000" fontStyle="Bold"/>
+</Defaults>
+
+<Panel id="redirect" active="false" position="0 0 0" scale="0.6 0.6 0.6" offsetXY="0 0" color="White" >
+  <Text offsetXY="0 350" fontSize="80" color="Red">WARNING</Text>
+
+<Text id="coreRedirect" offsetXY="0 0" fontSize="36">
+    WAIT FOR LOADING
+</Text>
+
+  <Button id="closeRedirectBtn" active="true" offsetXY="0 -475"  color="#000000" textColor="#aaaaaa" width="500" height="80"  fontSize="30" onClick="closeRedir">CLOSE</Button>
+  <Text id="closeRedirectLbl" active="true" offsetXY="0 -475" textColor="White" fontSize="30">
+  </Text>
+</Panel>
+
+<Panel id="main" active="false" position="0 0 0" scale="0.5 0.5 0.5" offsetXY="0 0" color="#999999" visibility="Diamonds">
+  <Text offsetXY="0 400">CHOOSE YOUR SEAT</Text>
+  <Button id="redBtn" offsetXY="-300 100" color="#bb0000"  onClick="placeToRed">Red Player</Button>
+  <Button id="blueBtn" offsetXY="300 100" color="#0033bb" textColor="#aaaaaa" onClick="placeToBlue">Blue Player</Button>
+  <Text fontSize="45" color="#bb0000" offsetXY="0 -100" >USE OTHER PLAYER COLORS AT YOUR OWN RISK !</Text>
+  <Button id="greyBtn" offsetXY="0 -250"  color="#666666" width="1150" height="200"  onClick="placeToGray">Spectator</Button>
+  <Button id="closeBtn" offsetXY="0 -475"  color="#000000" textColor="#aaaaaa" width="500" height="80"  fontSize="30" onClick="closeMenu">CLOSE MENU</Button>
+</Panel>

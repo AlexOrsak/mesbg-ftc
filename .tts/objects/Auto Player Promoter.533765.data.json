@@ -1,0 +1,45 @@
+{
+  "GUID": "533765",
+  "Name": "BlockSquare",
+  "Transform": {
+    "posX": 18.51748,
+    "posY": -0.437406778,
+    "posZ": -27.6239586,
+    "rotX": -6.061732e-8,
+    "rotY": 0.0128212636,
+    "rotZ": -1.4099021e-7,
+    "scaleX": 1,
+    "scaleY": 0.2,
+    "scaleZ": 1
+  },
+  "Nickname": "Auto Player Promoter",
+  "Description": "This tool makes sure all players (present and future) are promoted so they have \"host\" powers: delete/spawn/copy/paste/etc.\r\n\r\nThe tool also takes care that deliberately demoted players are never automatically promoted again (such as if they drop & rejoin or if time is rewound).\r\n\r\nYou'll probably want to hide this underneath the table, disable tooltip, and disable interactivity (see script).",
+  "GMNotes": "",
+  "AltLookAngle": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "ColorDiffuse": {
+    "r": 0,
+    "g": 0,
+    "b": 0
+  },
+  "LayoutGroupSortIndex": 0,
+  "Value": 0,
+  "Locked": true,
+  "Grid": true,
+  "Snap": true,
+  "IgnoreFoW": false,
+  "MeasureMovement": false,
+  "DragSelectable": true,
+  "Autoraise": true,
+  "Sticky": true,
+  "Tooltip": true,
+  "GridProjection": false,
+  "HideWhenFaceDown": false,
+  "Hands": false,
+  "LuaScript": "--::[[ Auto Player Promoter ]]::--\r\n-- Version 1.0\r\n-- By Kevin O'Mara (Quickle)\r\n-- https://steamcommunity.com/profiles/76561197997376704\r\n\r\n--[[\r\nThis script runs in the background and makes sure all players are promoted so\r\nthey have \"host\" powers (delete/spawn/copy/paste/etc.) For more info on host:\r\nhttp://berserk-games.com/knowledgebase/player-roles/\r\n\r\nAdditionally, if a player gets \"demoted\", the script takes care they are never\r\nautomatically promoted again (i.e. when the player drops and re-joins the match,\r\nthe game is saved and loaded in the future, or time is rewound/fast forwarded).\r\n\r\nPlayers are promoted at the following times:\r\n* All players are promoted each time the game first loads (including Undo/Redo).\r\n* New players are promoted upon joining the match.\r\n\r\nWhether a player is \"demoted\" is recorded at the following times:\r\n* All players are recorded when the game saves (including auto saves).\r\n* Individual players are recorded when they leave the match.\r\n\r\nUndo / Redo\r\n* Undo - A demoted player may become promoted again if time rewinds to a point\r\n  when they were previously promoted.\r\n* Redo - A player will never become demoted when time fast forwards, even if\r\n  they had previously been demoted at that autosave.\r\n--]]\r\n\r\n\r\n\r\n--------------------------------------------------------------------------------\r\n--[[ CONFIGURATION  ]]----------------------------------------------------------\r\n--------------------------------------------------------------------------------\r\n--[[\r\nYou can modify the script's behavior by changing these variables:\r\n--]]\r\n\r\n-- When true, this object is interactable by Players.\r\n-- You may wish to lock this object and hide it somewhere. To do so, simply:\r\n--  1. Set this value to 'true' & save the script.\r\n--  2. Move the object somewhere & save the game.\r\n--  3. Set this value back to 'false' & save the script.\r\nlocal objectIsInteractable = true\r\n\r\n-- When true, a chat message announces each time a player is automatically\r\n-- promoted or would have been promoted (but wasn't because they are \"demoted\").\r\n-- Lets players know they are being promoted by a script rather than the host.\r\nlocal chatEnabled = false\r\n\r\n-- When true, debug information is written the log window (host only).\r\nlocal loggingEnabled = false\r\n\r\n\r\n--------------------------------------------------------------------------------\r\n--[[ SCRIPT CODE  ]]------------------------------------------------------------\r\n--------------------------------------------------------------------------------\r\n\r\n--[[ Utility Methods ]]---------------------------------------------------------\r\n\r\nlocal function _log(element, label)\r\n    -- Log a message with the prefix \"AutoPlayerPromoter: \".\r\n    -- Wrapper for `log()`: https://api.tabletopsimulator.com/base/#log\r\n    if loggingEnabled then\r\n        log(element, \"AutoPlayerPromoter: \" .. tostring(label))\r\n    end\r\nend\r\n\r\nlocal function _printToAll(message)\r\n    -- Print a message to chat, but only if `chatEnabled` is `true`.\r\n    -- Wrapper for `print()`: https://api.tabletopsimulator.com/base/#print\r\n    if chatEnabled then\r\n        printToAll(message)\r\n    end\r\nend\r\n\r\nlocal function _playerAsTable(player)\r\n    -- Return a <Player> object (https://api.tabletopsimulator.com/player/) as a\r\n    -- simple key-value table, which can be expanded by the built-in logging\r\n    -- method: https://api.tabletopsimulator.com/base/#log\r\n    return {\r\n        steam_name  = player.steam_name,\r\n        steam_id    = player.steam_id,\r\n        promoted    = player.promoted,\r\n        host        = player.host,\r\n        admin       = player.admin,\r\n        color       = player.color,\r\n        team        = player.team,\r\n        seated      = player.seated,\r\n        blindfolded = player.blindfolded,\r\n        lift_height = player.lift_height,\r\n    }\r\nend\r\n--//////////////////////////////////////////////////////////////////////////////\r\n\r\n\r\n\r\n--[[ Player Promotion Tracker ]]------------------------------------------------\r\n--[[\r\nKeeps track of which players are demoted and offers a method to promote players.\r\n--]]\r\n\r\n-- Steam IDs of Players who have had their promotion revoked.\r\n-- @type: Set<string>\r\nlocal _demotedPlayerSteamIds = {}\r\n\r\nfunction isOnDemotedPlayerList(player)\r\n    -- @param player <Player> (https://api.tabletopsimulator.com/player/)\r\n    return _demotedPlayerSteamIds[player.steam_id] ~= nil\r\nend\r\n\r\nfunction isPromoted(player)\r\n    -- @param player <Player> (https://api.tabletopsimulator.com/player/)\r\n    return player.promoted or player.host\r\nend\r\n\r\nfunction tryPromotePlayer(player)\r\n    -- @param player <Player> (https://api.tabletopsimulator.com/player/)\r\n    if isOnDemotedPlayerList(player) then\r\n        _log(_playerAsTable(player), \"Will not promote player because they are on the Demoted Player List: \")\r\n        _printToAll(\"AutoPlayerPromoter: Not promoting player \" .. tostring(player.steam_name) .. \", because they were demoted by host.\")\r\n    elseif isPromoted(player) then\r\n        _log(_playerAsTable(player), \"Will not promote player because they are already promoted or host: \")\r\n    else\r\n        _log(_playerAsTable(player), \"Promoting player: \")\r\n        _printToAll(\"AutoPlayerPromoter: Promoting \" .. tostring(player.steam_name))\r\n        player.promote()\r\n    end\r\nend\r\n\r\nfunction savePlayerPromotionState(player)\r\n    -- @param player <Player> (https://api.tabletopsimulator.com/player/)\r\n    if isPromoted(player) then\r\n        _log(_playerAsTable(player), \"Saving player's promotion status. Player is <promoted>: \")\r\n        _demotedPlayerSteamIds[player.steam_id] = nil\r\n    else\r\n        _log(_playerAsTable(player), \"Saving player's promotion status. Player is <demoted>: \")\r\n        _demotedPlayerSteamIds[player.steam_id] = {}\r\n    end\r\nend\r\n--//////////////////////////////////////////////////////////////////////////////\r\n\r\n\r\n\r\n--[[ Event Hooks ]]-------------------------------------------------------------\r\n--[[\r\nMakes sure players are getting promoted and recorded at the right times by\r\nresponding to events.\r\n--]]\r\n\r\nfunction onLoad(saveData)\r\n    self.interactable = objectIsInteractable\r\n\r\n    _log(saveData, \"Loading from script state: \")\r\n    if saveData == \"\" then\r\n        _demotedPlayerSteamIds = {}\r\n    else\r\n        _demotedPlayerSteamIds = JSON.decode(saveData)\r\n    end\r\n\r\n    local players = Player.getPlayers()\r\n    for _, player in ipairs(players) do\r\n        tryPromotePlayer(player)\r\n    end\r\nend\r\n\r\nfunction onPlayerConnect(player)\r\n    -- @param player <Player> (https://api.tabletopsimulator.com/player/)\r\n    tryPromotePlayer(player)\r\nend\r\n\r\nfunction onPlayerDisconnect(player)\r\n    -- @param player <Player> (https://api.tabletopsimulator.com/player/)\r\n    savePlayerPromotionState(player)\r\nend\r\n\r\nfunction onSave()\r\n    local players = Player.getPlayers()\r\n    for _, player in ipairs(players) do\r\n        savePlayerPromotionState(player)\r\n    end\r\n\r\n    saveData = JSON.encode(_demotedPlayerSteamIds)\r\n    _log(saveData, \"Saving script state: \")\r\n    return saveData\r\nend\r\n--//////////////////////////////////////////////////////////////////////////////",
+  "LuaScriptState": "[]",
+  "XmlUI": ""
+}
