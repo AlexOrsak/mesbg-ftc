@@ -1,1792 +1,1039 @@
--- FTC-GUID: 738804
--- CONTENT:
--- size changer manager
--- deploy zones manager
--- objectives manager
--- game manager
-
-keepForTerrainEditor = true
-
-mat_GUID = Global.getVar("mat_GUID")
+centerCircle_GUID = "51ee2f"
+quarterCircle_GUID = "51ee3f"
+templateObjective_GUID = "573333"
+mat_GUID = "4ee1f2"
+inGame = false
+hideText = "Hide"
+showText = "Show"
 
 function onLoad(saved_data)
-    --self.setPosition({40,-4,0})
-    self.setRotation({0,270,0})
-    -- load from saved
-    if saved_data ~= "" then
-        local loaded_data = JSON.decode(saved_data)
-        gameMode = loaded_data.svgameMode
-        inGame = loaded_data.svinGame
-        currentTurn = loaded_data.svcurrentTurn
-        currentPhase = loaded_data.svcurrentPhase
-        mapSizeSelected = loaded_data.svmapSizeSelected
-        sizeConfirmed = loaded_data.svsizeConfirmed
-        deploySelected = loaded_data.svdeploySelected
-    end
+	self.setRotation({0, 270, 0})
+	if saved_data ~= "" then
+		local loaded_data = JSON.decode(saved_data)
+		inGame = loaded_data.svInGame
+		deploySelected = loaded_data.svDeploySelected
+		Notes.setNotes(loaded_data.svNotes)
+	end
 
-    mat = getObjectFromGUID(mat_GUID)
-    if simulation then print("THIS IS "..currentTurn.." TURN") end
-    -- DEPLOY MENU VARIABLES
+	mat = getObjectFromGUID(mat_GUID)
+	mat_size = mat.getScale() * 36
 
-    -- REST OF CODE
-    redTurnCounter = getObjectFromGUID(Global.getVar("redTurnCounter_GUID"))
-    blueTurnCounter = getObjectFromGUID(Global.getVar("blueTurnCounter_GUID"))
-    gameTurnCounter = getObjectFromGUID(Global.getVar("gameTurnCounter_GUID"))
-    redCpCounter = getObjectFromGUID(Global.getVar("redCPCounter_GUID"))
-    blueCpCounter = getObjectFromGUID(Global.getVar("blueCPCounter_GUID"))
-    if inGame == false then
-        --broadcastToAll("The mod will keep track of how many times a game is started or a map is exported.\nNo other data will be sent!", "Orange")
-        Notes.setNotes(notePadTxt)
-    else
-        Notes.setNotes("")
-    end
-    if deploymentIngamePlaced == true then
-        deployIngameBtn.label = deployIngameLblOpen
-    else
-        deployIngameBtn.label = deployIngameLblClosed
-    end
-    if areaPlaced == true then
-        areaBtn.label = areaLblOpen
-    else
-        areaBtn.label = areaLblClosed
-    end
-    gameTurnCounter.call("checkGameEnd")
-    writeMenus()
-    if not inGame then
-        makeAnnouncement()
-    end
+	writeMenus()
+	if not inGame then
+		printToAll("Welcome to MESBG FTC", "Yellow")
+	end
 end
 
 function onSave()
-    saved_data = JSON.encode({
-        svinGame = inGame,
-        svgameMode = gameMode,
-        svcurrentTurn = currentTurn,
-        svcurrentPhase = currentPhase,
-        svmapSizeSelected = mapSizeSelected,
-        svsizeConfirmed = sizeConfirmed,
-        svdeploySelected = deploySelected
-    })
-    --saved_data = ""
-    return saved_data
+	saved_data = JSON.encode({
+		svInGame = inGame,
+		svDeploySelected = deploySelected,
+		svNotes = getNotes()
+	})
+	return saved_data
 end
 
-function makeAnnouncement()
-    local features={
-    "0.1",
-    "0.1",
-    "0.1",
-    "0.1"
-    }
-    printToAll("Welcome to MESBG FTC:", "Yellow")
-    for i, new in ipairs(features) do
-        printToAll("- "..new, "Yellow")
-    end
+function writeMenus()
+	self.clearButtons()
+	if inGame == false then
+		self.createButton(lockInBtn)
+		if DeployZonesData[deploySelected] ~= nil then
+			if deploySelected == #DeployZonesData then
+				scenarioBtn.label = ""
+			else
+				scenarioBtn.label = "Scenario " .. deploySelected .. " - " .. DeployZonesData[deploySelected].name
+			end
+		end
+		self.createButton(scenarioBtn)
+		self.createButton(deployUpBtn)
+		self.createButton(deployDownBtn)
+		self.createButton(deployMenuBtn)
+		self.createButton(objectivesOffsetDownBtn)
+		self.createButton(objectivesOffsetUpBtn)
+		self.createButton(objectivesOffsetMenuBtn)
+	end
+	if #deployments > 0 then
+		deployIngameBtn.label = hideText .. "\nDeployment\nZones"
+	end
+	if #centers > 0 then
+		centersBtn.label = hideText .. centersLbl
+	end
+	self.createButton(centersBtn)
+	self.createButton(quartersBtn)
+	self.createButton(maelstromBtn)
+	self.createButton(campSitesBtn)
+	self.createButton(deployIngameBtn)
+	self.createButton(deployOffsetMenuBtn)
+	self.createButton(deployOffsetUpBtn)
+	self.createButton(deployOffsetDownBtn)
 end
 
--- SIZE CHANGER MANAGER
-positionValue={0,-9.52,0}
-sizeData={
-    {id=1, name='MESBG - Small scale - 44" x 30"', scale={1.22,1,0.83}, defaultObjectives=0},
-    {id=2, name='MESBG - "4x4" "', scale={1.335,1,1.335}, defaultObjectives=0},
-    {id=3, name='MESBG - 2v2 - 44" x 90"', scale={0.83*3,1,1.22}, defaultObjectives=0},
+lockInBtn = {
+	label = "Lock Scenario",
+	click_function = "startGame",
+	function_owner = self,
+	position = {0, 5, -1},
+	rotation = {0, 0, 0},
+	height = 750,
+	width = 5000,
+	font_size = 500,
+	color = {0, 0.6, 0},
+	font_color = {1, 1, 1}
 }
-
-menuSizeX = 0
-menuSizeY = 5
-menuSizeZ = 25
-arrowOffset=9.5
-
-mapSizeSelected=2
-numberSizes=#sizeData
-sizeConfirmed=false
-
-sizeMenuBtn={
-    index=1, label="S E L E C T     B A T T L E F I E L D     S I Z E", click_function="none", function_owner=self,
-    position={menuSizeX, menuSizeY ,menuSizeZ-2.05}, rotation={0,0,0}, height=450, width=8000, scale = {1.3,1.3,1.3},
-    font_size=300, color={0,0,0}, font_color={1,1,1}
-}
-
-sizeBtn={
-    index= i, label="Zone", click_function="none", function_owner=self,
-    position={-menuSizeX, menuSizeY ,menuSizeZ}, rotation={0,0,0}, height=450, width=6000,scale = {1.3,1.3,1.3},
-    font_size=300, color={0.6,0.6,0.6}, font_color={0,0,0}
-}
-sizeUpBtn={
-    index=1, label="->", click_function="sizeUp", function_owner=self,
-    position={-menuSizeX+arrowOffset, menuSizeY ,menuSizeZ}, rotation={0,0,0}, height=450, width=800,scale = {1.3,1.3,1.3},
-    font_size=300, color={0,0,0}, font_color={1,1,1}
-}
-sizeDownBtn={
-    index=1, label="<-", click_function="sizeDown", function_owner=self,
-    position={-menuSizeX-arrowOffset, menuSizeY ,menuSizeZ}, rotation={0,0,0}, height=450, width=800,scale = {1.3,1.3,1.3},
-    font_size=300, color={0,0,0}, font_color={1,1,1}
-}
-confirmBtn={
-    index= i, label="C O N F I R M\nFOR GAMING", click_function="confirmSizeGame", function_owner=self,
-    position={-menuSizeX, menuSizeY ,menuSizeZ+3.5}, rotation={0,0,0}, height=1400, width=4400, scale = {1.3,1.3,1.3},
-    font_size=500, color={0,0.7,0}, font_color={0,0,0}
-}
-confirmBtn2={
-    index= i, label="C O N F I R M\nFOR MAP MAKING", click_function="confirmSizeTerrain", function_owner=self,
-    position={-menuSizeX, menuSizeY ,menuSizeZ+7.5}, rotation={0,0,0}, height=1400, width=4400, scale = {1.3,1.3,1.3},
-    font_size=500, color={0.7,0,0}, font_color={0,0,0}
-}
-
-function refreshMat()
-    mat = getObjectFromGUID(mat_GUID)
+function startGame()
+	Global.call("recordPlayers")
+	inGame = true
+	destroyDeployZones()
+	destroyCenters()
+	destroyQuarters()
+	destroyMaelstrom()
+	destroyCampSites()
+	writeMenus()
 end
 
-function writeSizeMenu()
-    self.clearButtons()
-    if sizeConfirmed then
-        return
-    end
-    self.createButton(sizeMenuBtn)
-    sizeBtn.label=sizeData[mapSizeSelected].name
-    self.createButton(sizeBtn)
-    self.createButton(sizeUpBtn)
-    self.createButton(sizeDownBtn)
-    self.createButton(confirmBtn)
-    self.createButton(confirmBtn2)
-    mat.setScale(sizeData[mapSizeSelected].scale)
-    mat.setPosition(positionValue)
-end
-
-function sizeUp()
-    sizeUpDown(1)
-end
-
-function sizeDown()
-    sizeUpDown(-1)
-end
-
-function sizeUpDown(increment)
-    mapSizeSelected=mapSizeSelected+increment
-    if mapSizeSelected > #sizeData then
-        mapSizeSelected=1
-    end
-    if mapSizeSelected < 1 then
-        mapSizeSelected=#sizeData
-    end
-    updateDeployObjectivesSelection()
-    writeMenus()
-end
-
-function confirmSizeGame()
-    confirmSizeMat("game")
-    --deleting the Combat Patrol Mission book unless on the appropriate map size
-    if sizeData[mapSizeSelected].id ~= 1 then
-        destroyObject(cpbook)
-    end
-end
-
-function confirmSizeTerrain()
-    confirmSizeMat("terrain")
-end
-
-function confirmSizeMat(type)
-    gameMode= type
-    sizeConfirmed=true
-    mat.setScale(sizeData[mapSizeSelected].scale)
-    self.setRotation({0,270,0})
-    writeMenus()
-    if gameMode == "game" then
-    end
-    if gameMode == "terrain" then
-        switchToTerrainEditor()
-    end
-end
-
-function updateDeployObjectivesSelection()
-    deploySelected = #DeployZonesData
-end
-
-function switchToTerrainEditor()
-    printToAll("Deleting unnecessary things.\nPLEASE WAIT..", "Yellow")
-    local pos={}
-    for i, obj in ipairs(getAllObjects()) do
-        pos=obj.getPosition()
-        if ((pos.y > -8 and pos.y < 0.36) or pos.y > 0.71) and not obj.getVar("keepForTerrainEditor") then
-            obj.destroy()
-        end
-    end
-    Global.setVectorLines({})
-    printToAll("DONE!", "Yellow")
-end
--- END size changer
-
+objectives = {}
+objectivesOffset = 0
 objectivesData = {
---Leviathan Missions
-    {id = 12, name = "Test 8 ", objectives = {
-
-       {type = "fixed", pos={0, objectivesOffset, -0}}}},
-    {id = 13, name = "Test 6 ", objectives = {
-
-        {type = "fixed", pos={-350, objectivesOffset, 0}}}},
-    {id = 14, name = "Test 5 ", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, 0}},
-        {type = "fixed", pos={12, objectivesOffset, 16}},
-        {type = "fixed", pos={20, objectivesOffset, -8}},
-        {type = "fixed", pos={-12, objectivesOffset, -16}},
-        {type = "fixed", pos={-20, objectivesOffset, 8}}}},
-    {id = 15, name = "Test 4 ", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, 0}},
-        {type = "fixed", pos={16, objectivesOffset, 12}},
-        {type = "fixed", pos={16, objectivesOffset, -12}},
-        {type = "fixed", pos={-16, objectivesOffset, 12}},
-        {type = "fixed", pos={-16, objectivesOffset, -12}}}},
-    {id = 16, name = "Test 2", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, 0}},
-        {type = "fixed", pos={10, objectivesOffset, -14}},
-        {type = "fixed", pos={16, objectivesOffset, 12}},
-        {type = "fixed", pos={-10, objectivesOffset, 14}},
-        {type = "fixed", pos={-16, objectivesOffset, -12}}}},
-{id = 16, name = "Test ", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, 0}},
-        {type = "fixed", pos={10, objectivesOffset, -14}},
-        {type = "fixed", pos={16, objectivesOffset, 12}},
-        {type = "fixed", pos={-10, objectivesOffset, 14}},
-        {type = "fixed", pos={-16, objectivesOffset, -12}}}},
---Leviathan Missions with Hidden Supplies
-    {id = 17, name = "Hammer and Anvil (HS)", objectives = {
-        {type = "diagonal", orientation="-xz", pos={6, objectivesOffset, 0}},
-        {type = "diagonal", orientation="-xz", pos={-6, objectivesOffset, 0}},
-        {type = "fixed", pos={20, objectivesOffset, 0}},
-        {type = "fixed", pos={-20, objectivesOffset, 0}},
-        {type = "fixed", pos={0, objectivesOffset, 16}},
-        {type = "fixed", pos={0, objectivesOffset, -16}}}},
-    {id = 18, name = "Dawn of War (HS)", objectives = {
-        {type = "diagonal", orientation="-xz", pos={6, objectivesOffset, 0}},
-        {type = "diagonal", orientation="-xz", pos={-6, objectivesOffset, 0}},
-        {type = "fixed", pos={20, objectivesOffset, 0}},
-        {type = "fixed", pos={-20, objectivesOffset, 0}},
-        {type = "fixed", pos={0, objectivesOffset, 16}},
-        {type = "fixed", pos={0, objectivesOffset, -16}}}},
-    {id = 19, name = "Sweeping Engagement (HS)", objectives = {
-        {type = "diagonal", orientation="-xz", pos={6, objectivesOffset, 0}},
-        {type = "diagonal", orientation="-xz", pos={-6, objectivesOffset, 0}},
-        {type = "fixed", pos={12, objectivesOffset, 16}},
-        {type = "fixed", pos={20, objectivesOffset, -8}},
-        {type = "fixed", pos={-12, objectivesOffset, -16}},
-        {type = "fixed", pos={-20, objectivesOffset, 8}}}},
-    {id = 20, name = "Search and Destroy (HS)", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, 0}},
-        {type = "fixed", pos={12, objectivesOffset, 0}},
-        {type = "fixed", pos={0, objectivesOffset, -12}},
-        {type = "fixed", pos={0, objectivesOffset, 12}},
-        {type = "fixed", pos={-12, objectivesOffset, 0}}}},
-    {id = 21, name = "Crucible of Battle (HS)", objectives = {
-        {type = "diagonal", orientation="-xz", pos={6, objectivesOffset, 0}},
-        {type = "diagonal", orientation="-xz", pos={-6, objectivesOffset, 0}},
-        {type = "fixed", pos={10, objectivesOffset, -14}},
-        {type = "fixed", pos={16, objectivesOffset, 12}},
-        {type = "fixed", pos={-10, objectivesOffset, 14}},
-        {type = "fixed", pos={-16, objectivesOffset, -12}}}},
---Combat Patrol Missions
-    {id = 22, name = "(CP) Clash of Patrols", objectives = {
-        {type = "fixed", pos={10, objectivesOffset, 0}},
-        {type = "fixed", pos={-10, objectivesOffset, 0}},
-        {type = "fixed", pos={0, objectivesOffset, 6}},
-        {type = "fixed", pos={0, objectivesOffset, -6}}}},
-    {id = 23, name = "(CP) Archeotech Recovery", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, 0}},
-        {type = "fixed", pos={16, objectivesOffset, 8}},
-        {type = "fixed", pos={-16, objectivesOffset, -8}},
-        {type = "fixed", pos={8, objectivesOffset, -8}},
-        {type = "fixed", pos={-8, objectivesOffset, 8}}}},
-    {id = 24, name = "(CP) Forward Outpost", objectives = {
-        {type = "fixed", pos={-12, objectivesOffset, 0}},
-        {type = "fixed", pos={12, objectivesOffset, 0}},
-        {type = "fixed", pos={0, objectivesOffset, 0}}}},
-    {id = 25, name = "(CP) Scorched Earth", objectives = {
-        {type = "fixed", pos={10, objectivesOffset, -4}},
-        {type = "fixed", pos={-10, objectivesOffset, 4}},
-        {type = "fixed", pos={0, objectivesOffset, 6}},
-        {type = "fixed", pos={0, objectivesOffset, -6}}}},
-    {id = 26, name = "(CP) Sweeping Raid", objectives = {
-        {type = "fixed", pos={0, objectivesOffset, -12}},
-        {type = "fixed", pos={0, objectivesOffset, 12}},
-        {type = "fixed", pos={12, objectivesOffset, 0}},
-        {type = "fixed", pos={-12, objectivesOffset, 0}}}},
-    {id = 27, name = "(CP) Display of Might", objectives = {
-        {type = "fixed", pos={12, objectivesOffset, -12}},
-        {type = "fixed", pos={0, objectivesOffset, -12}},
-		{type = "fixed", pos={-12, objectivesOffset, -12}},
-        {type = "fixed", pos={12, objectivesOffset, 12}},
-		{type = "fixed", pos={0, objectivesOffset, 12}},
-        {type = "fixed", pos={-12, objectivesOffset, 12}}}},
-    {id = 28, name = "(CP) Sites of power", objectives = {
-        {type = "fixed", pos={12, objectivesOffset, -12}},
-		{type = "fixed", pos={-12, objectivesOffset, -12}},
-        {type = "fixed", pos={12, objectivesOffset, 12}},
-        {type = "fixed", pos={-12, objectivesOffset, 12}}}},
-		    {id = 29, name = "(CP) Display of Might", objectives = {
-        {type = "fixed", pos={12, objectivesOffset, -6}},
-        {type = "fixed", pos={0, objectivesOffset, -6}},
-		{type = "fixed", pos={-12, objectivesOffset, -6}},
-        {type = "fixed", pos={12, objectivesOffset, 6}},
-		{type = "fixed", pos={0, objectivesOffset, 6}},
-        {type = "fixed", pos={-12, objectivesOffset, 6}}}},
-		   {id = 30, name = "(CP) Display of Might", objectives = {
-		{type = "fixed", pos={-9.84, objectivesOffset, -9.84}},
-        {type = "fixed", pos={9.84, objectivesOffset, 9.84}}}},
-    {id = 0, name = "None", objectives = {}},
-}
-
--- DEPLOY ZONES MANAGER
-DeployZonesData = {
-    --Leviathan Missions
-    {name = "Scenario 1 - Domination", objectivesID = 12, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 0 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 0, fromEdge = 0}}},
-    {name = "Scenario 2 - To The Death", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-    {name = "Scenario 3 - Hold Ground", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    {name = "Scenario 4 - Lords of Battle", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 0 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 0, fromEdge = 0}}},
-    {name = "Scenario 5 - Reconnoitre", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    --Leviathan Missions with Hidden Supplies
-    {name = "Scenario 6 - A Clash By MoonLight", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-    {name = "Scenario 7 - Seize The Prizes", objectivesID = 24, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-    {name = "Scenario 8 - Contest of Champions", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 0 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 0, fromEdge = 0}}},
-    {name = "Scenario 9 - Capture and Control", objectivesID = 20, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 0 },
-	--[[1]]{type = "line", color = "Red", position = "z", fromCenter = 12 },
-        --[[1]]{type = "line", color = "Teal", position = "z", fromCenter = -12 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 0, fromEdge = 0}}},
-    {name = "Scenario 10 - Heirloom of Ages Past ", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    --Combat Patrol Missions
-    {name = "Scenario 11 - Fog of War", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-    {name = "Scneario 12 - Storm the Camp", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    {name = "Scenario 13 - Command the Battlefield", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    {name = "Scenario 14 - Retrieval", objectivesID = 30, draw = {
-        --[[1]]{type = "diagonal", color = "Red", position = "x", fromCenter = -3},
-		--[[2]]{type = "diagonal", color = "Red", position = "x", fromCenter = 3},
-        --[[3]]{type = "diagonal", color = "Red", position = "x", fromCenter = 0}}},
-    {name = "Scenario 15 - Breakthrough", objectivesID = 26, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 0, fromEdge = 0}}},
-    {name = "Scenario 16 - Destroy The Supplies", objectivesID = 27, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-    {name = "Scenario 17 - Divide & Conquer", objectivesID = 24, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    {name = "Scenario 18 - Assassination", objectivesID = 13, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 0 }}},
-	   {name = "Scenario 19 Stake a claim ", objectivesID = 20, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-		   {name = "Scenario 20 Sites of power", objectivesID = 28, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-			   {name = "Scenario 21 Treasure horde", objectivesID = 29, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-				   {name = "Scenario 22 Escort the wounded", objectivesID = 27, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-					   {name = "Scenario 23 Lead from the front", objectivesID = 24, draw = {
-        --[[1]]{type = "line", color = "Teal", position = "-z", fromCenter = 12 },
-        --[[2]]{type = "line", color = "Red", position = "z", fromCenter = 12, fromEdge = 0}}},
-			       {name = "Scenario 24 Convergence", objectivesID = 26, draw = {
-        --[[1]]{type = "line", color = "Red", position = "z", fromCenter = 250 },
-        --[[2]]{type = "line", color = "Teal", position = "-z", fromCenter = 250, fromEdge = 0}}},
-    {name = "None", draw = {type = "none"}},
-	
-}
-
-deployLineHeight = 2.1
-deployLineYPos = deployLineHeight-0.1
-sizeMulti = 36
-
-function drawDeployZone(zone)
-    local drawDataZone = zone.draw
-    for i, drawData in ipairs(drawDataZone) do
-        if drawData.type == "arrow" then
-            drawArrow(drawData)
-        end
-        if drawData.type == "line" then
-            drawLine(drawData)
-        end
-        if drawData.type == "quarter" then
-            drawQuarter(drawData)
-        end
-        if drawData.type == "diagonal" then
-            drawDiagonal(drawData)
-        end
-        if drawData.type == "rectangle" then
-            drawRectangle(drawData)
-        end
-        if drawData.type == "corner" then
-            drawCorner(drawData)
-        end
-        if drawData.type == "triangle" then
-            drawTriangle(drawData)
-        end
-        if drawData.type == "circle" then
-            drawCircle(drawData, "deployZone")
-        end
-        if drawData.type == "circleInZone" then
-            drawCircleInZone(drawData, "deployZone")
-        end
-    end
-    setDeployHeight()
-end
-
-function setDeployHeight()
-    local pos = {0,0,0}
-    local found_GUID = {}
-    for i, obj in ipairs(getAllObjects()) do
-        if obj.getGMNotes() == "deployZone" then
-            table.insert(found_GUID, #found_GUID+1, obj.getGUID())
-        end
-    end
-    local found= nil
-    for j, guid in ipairs(found_GUID) do
-        found=getObjectFromGUID(guid)
-        pos = found.getPosition()
-        found.setPosition({pos[1], defaultDeployHeight+ deployOffset, pos[3]})
-    end
-end
-
-
-function drawRectangle(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePosL = {x = 0, y = deployLineYPos, z = 0}
-    local lineRotL = {x = 0, y = 90, z = 0}
-    local lineScaleL = {x = 5, y = deployLineHeight, z = 0.02}
-    local linePosS1 = {x = 0, y = deployLineYPos, z = 0}
-    local lineRotS1 = {x = 0, y = 0, z = 0}
-    local lineScaleS1 = {x = 5, y = deployLineHeight, z = 0.02}
-    local linePosS2 = {x = 0, y = deployLineYPos, z = 0}
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "z" or drawData.position == "-z" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    if drawData.wide ~= 0 then
-        mapBase = drawData.wide * 2
-    end
-
-    lineScaleL.x = drawData.wide * 2
-    linePosL.x = drawData.fromCenter
-
-    lineScaleS1.x = (mapHeight/2)-drawData.fromCenter
-    linePosS1.x = drawData.fromCenter + ((mapHeight/2) - drawData.fromCenter)/2
-    linePosS1.z = drawData.wide
-
-    linePosS2.x = linePosS1.x
-    linePosS2.z = -linePosS1.z
-
-    if drawData.position == "x" then
-        -- default values
-    end
-    if drawData.position == "-x" then
-            linePosL.x = - linePosL.x
-            linePosS2.x = -linePosS2.x
-            linePosS1.x = -linePosS1.x
-    end
-    if drawData.position == "z" then
-        linePosL.z = linePosL.x
-        linePosL.x = 0
-        lineRotL.y = 0
-
-        local tmp = linePosS1.z
-        linePosS1.z = linePosS1.x
-        linePosS1.x = tmp
-        lineRotS1.y = 90
-
-        linePosS2.z = linePosS1.z
-        linePosS2.x = -tmp
-
-    end
-    if drawData.position == "-z" then
-        linePosL.z = -linePosL.x
-        linePosL.x = 0
-        lineRotL.y = 0
-
-        local tmp = linePosS1.z
-        linePosS1.z = -linePosS1.x
-        linePosS1.x = -tmp
-        lineRotS1.y = 90
-
-        linePosS2.z = linePosS1.z
-        linePosS2.x = tmp
-
-    end
-    spawnLine(linePosL, lineRotL, lineScaleL, drawData.color, "deployZone") -- orizz
-    spawnLine(linePosS1, lineRotS1, lineScaleS1, drawData.color,  "deployZone") -- vert1
-    spawnLine(linePosS2, lineRotS1, lineScaleS1, drawData.color, "deployZone") -- vert2
-end
-
-function drawCorner(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePosL = {x = 0, y = deployLineYPos, z = 0}
-    local lineRotL = {x = 0, y = 0, z = 0}
-    local lineScaleL = {x = 5, y = deployLineHeight, z = 0.02}
-    local linePosS1 = {x = 0, y = deployLineYPos, z = 0}
-    local lineRotS1 = {x = 0, y = 90, z = 0}
-    local lineScaleS1 = {x = 5, y = deployLineHeight, z = 0.02}
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "x" or drawData.position == "-x" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    --print("MAP BxH: "..mapBase.." x "..mapHeight)
-    lineScaleL.x = (mapHeight/2) + drawData.wide
-    linePosL.x = (mapHeight/4)-(drawData.wide/2)
-    linePosL.z = drawData.fromCenter
-
-    lineScaleS1.x = (mapBase/2)-drawData.fromCenter
-    linePosS1.z = drawData.fromCenter + lineScaleS1.x/2
-    linePosS1.x = -drawData.wide
-
-    if drawData.position == "z" then
-        -- default values
-    end
-    if drawData.position == "-z" then
-            linePosL.x = - linePosL.x
-            linePosL.z = - linePosL.z
-
-            linePosS1.z = -linePosS1.z
-            linePosS1.x = -linePosS1.x
-    end
-    if drawData.position == "x" then -- not valid, to do
-        linePosL.z = linePosL.x
-        linePosL.x = 0
-        lineRotL.y = 0
-
-        local tmp = linePosS1.z
-        linePosS1.z = linePosS1.x
-        linePosS1.x = tmp
-        lineRotS1.y = 90
-    end
-    if drawData.position == "-x" then-- not valid, to do
-        linePosL.z = -linePosL.x
-        linePosL.x = 0
-        lineRotL.y = 0
-
-        local tmp = linePosS1.z
-        linePosS1.z = -linePosS1.x
-        linePosS1.x = -tmp
-        lineRotS1.y = 90
-    end
-    spawnLine(linePosL, lineRotL, lineScaleL, drawData.color, "deployZone") -- long
-    spawnLine(linePosS1, lineRotS1, lineScaleS1, drawData.color,  "deployZone") -- short
-end
-
-function drawDiagonal(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePos = {x = 0, y = deployLineYPos, z = 0}
-    local lineRot = {x = 0, y = 0, z = 0}
-    local lineScale = {x = 5, y = deployLineHeight, z = 0.02}
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "x" or drawData.position == "-x" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    local mainDiagonal = 0
-    local edgeLoss = 0
-    local triBase = 0 -- triangle with hypotenuse as the needed deploy line
-
-    local edgeAngle = 0 -- angle of the line from the given map edge
-    local edgeAngleRad = 0
-    local halfTriBase = 0 -- triangle with hypotenuse that is half the line lenght
-    local halfTriHeight = 0 -- triangle with hypotenuse that is half the line lenght
-    mainDiagonal = math.sqrt(math.pow(mapBase, 2) + math.pow(mapHeight, 2))
-    edgeAngleRad = math.atan(mapBase / mapHeight)
-    edgeAngle = math.deg(edgeAngleRad)
-    edgeLoss = drawData.fromCenter / math.cos(edgeAngleRad)
-    triBase = mapBase-edgeLoss
-    local ratio = triBase / mapBase
-    lineScale.x = mainDiagonal * ratio
-    lineRot.y = edgeAngle
-    halfTriBase = lineScale.x * math.sin(edgeAngleRad) / 2
-    halfTriHeight = lineScale.x * math.cos(edgeAngleRad) / 2
-    linePos.x = (mapHeight/2) - (lineScale.x/2) * math.cos(edgeAngleRad)
-    linePos.z = (mapBase/2) - (lineScale.x/2) * math.sin(edgeAngleRad)
-    if drawData.position == "z" then -- upper right
-        -- default values
-    end
-    if drawData.position == "-z" then
-        linePos.x = - linePos.x
-        linePos.z = - linePos.z
-    end
-    spawnLine(linePos, lineRot, lineScale, drawData.color,  "deployZone")
-end
-
-function drawTriangle(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePos = {x = 0, y = deployLineYPos, z = 0}
-    local lineRot = {x = 0, y = 0, z = 0}
-    local lineScale = {x = 5, y = deployLineHeight, z = 0.02}
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "z" or drawData.position == "-z" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-
-    local triBase = 0 -- triangle with hypotenuse as the needed deploy line
-    local triHeight = 0 -- triangle with hypotenuse as the needed deploy line
-
-    local edgeAngle = 0 -- angle of the line from the given map edge
-    local edgeAngleRad = 0
-
-    triBase = mapBase
-    triHeight = mapHeight/2
-    edgeAngleRad = math.atan(triBase/triHeight )
-    if drawData.position == "z" or drawData.position == "-z" then
-        edgeAngleRad = -edgeAngleRad
-    end
-    edgeAngle = math.deg(edgeAngleRad)
-    lineScale.x = math.sqrt(triBase^2+triHeight^2)
-    lineRot.y = edgeAngle
-
-    if drawData.position == "x" then
-        linePos.x=mapHeight/4
-        linePos.z=0
-    end
-    if drawData.position == "-x" then
-        linePos.x=-mapHeight/4
-        linePos.z=0
-    end
-    if drawData.position == "z" then
-        lineRot.y= lineRot.y-90
-        linePos.x=0
-        linePos.z=mapHeight/4
-    end
-    if drawData.position == "-z" then
-        lineRot.y= lineRot.y+90
-        linePos.x=0
-        linePos.z=-mapHeight/4
-    end
-    spawnLine(linePos, lineRot, lineScale, drawData.color,  "deployZone")
-end
-
-function drawQuarter(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePos = {x = 0, y = deployLineYPos, z = 0}
-    local lineRot = {x = 0, y = 90, z = 0}
-    local lineScale = {x = 5, y = deployLineHeight, z = 0.02}
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "x" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    lineScale.x = (mapBase/2)-drawData.fromCenter
-    linePos.z =  (lineScale.x/2) + drawData.fromCenter
-    if drawData.position == "xz" then
-        -- default values
-    end
-    if drawData.position == "x-z" or drawData.position == "-x-z" then
-        linePos.z = -linePos.z
-    end
-    spawnLine(linePos, lineRot, lineScale, drawData.color,  "deployZone") -- short line
-    lineScale.x = (mapHeight/2)-drawData.fromCenter
-    linePos.z = 0
-    linePos.x =  (lineScale.x/2) + drawData.fromCenter
-    lineRot.y = 0
-    if drawData.position == "-xz" or drawData.position == "-x-z" then
-        linePos.x = -linePos.x
-    end
-    spawnLine(linePos, lineRot, lineScale, drawData.color, "deployZone") -- long line
-end
-
-function drawCircle(drawData, type)
-    local originalCircle=getObjectFromGUID(Global.getVar("centerCircle_GUID"))
-    local circleObj = originalCircle.clone({ position = {0, -5, 0}})
-    if circleObj then
-        circleObj.setLock(true)
-        circleObj.setScale({drawData.fromCenter, deployLineHeight, drawData.fromCenter})
-        circleObj.setPosition({0, deployLineYPos, 0})
-        circleObj.setColorTint(drawData.color)
-        circleObj.setGMNotes(type)
-        circleObj.setName("")
-        local blockComp = circleObj.getComponent("BoxCollider")
-        blockComp.set("enabled", false)
-    end
-end
-
-function drawCircleInZone(drawData, type)
-    local mat = getObjectFromGUID(mat_GUID)
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "z" or drawData.position == "-z" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    local posX=0
-    local posZ=0
-    if drawData.position == "x" then
-        posX=((mapHeight/2-drawData.deployFromCenter)/2)+drawData.deployFromCenter
-    end
-    if drawData.position == "-x" then
-        posX=-((mapHeight/2-drawData.deployFromCenter)/2)+drawData.deployFromCenter
-    end
-    if drawData.position == "z" then
-        posZ=((mapHeight/2-drawData.deployFromCenter)/2)+drawData.deployFromCenter
-    end
-    if drawData.position == "-z" then
-        posZ=-((mapHeight/2-drawData.deployFromCenter)/2)+drawData.deployFromCenter
-    end
-     drawCircleNotCentered(drawData, type, posX,posZ)
-end
-
-function drawCircleNotCentered(drawData, type, centerX, centerZ)
-    local originalCircle=getObjectFromGUID(Global.getVar("centerCircle_GUID"))
-    local circleObj = originalCircle.clone({ position = {0, -5, 0}})
-    if circleObj then
-        circleObj.setLock(true)
-        circleObj.setScale({drawData.fromCenter, deployLineHeight, drawData.fromCenter})
-        circleObj.setPosition({centerX, deployLineYPos, centerZ})
-        circleObj.setColorTint(drawData.color)
-        circleObj.setGMNotes(type)
-        circleObj.setName("")
-        local blockComp = circleObj.getComponent("BoxCollider")
-        blockComp.set("enabled", false)
-    end
-end
-
-function drawCornerQuarterCircles(radius, type)
-    local originalCircle=getObjectFromGUID(Global.getVar("quarterCircle_GUID"))
-    local mat = getObjectFromGUID(mat_GUID)
-    local lineScale = {x = 0, y = deployLineHeight, z = 0.02}
-    local x = mat.getScale().x * sizeMulti * 0.5 -- long edge
-    local z = mat.getScale().z * sizeMulti * 0.5 -- short edge
-    local cornerLocations = {
-        {position = {x, deployLineYPos, z}, rotation = {0, 270, 0}},
-        {position = {x, deployLineYPos, -z}, rotation = {0, 0, 0}},
-        {position = {-x, deployLineYPos, z}, rotation = {0, 180, 0}},
-        {position = {-x, deployLineYPos, -z}, rotation = {0, 90, 0}},
-    }
-
-    for i, location in ipairs(cornerLocations) do
-        local circleObj = originalCircle.clone()
-        if circleObj then
-            circleObj.setLock(true)
-            circleObj.setScale({radius, deployLineHeight, radius})
-            circleObj.setPosition(location.position)
-            circleObj.setRotation(location.rotation)
-            circleObj.setColorTint("White")
-            circleObj.setGMNotes(type)
-            circleObj.setName("")
-            local blockComp = circleObj.getComponent("BoxCollider")
-            blockComp.set("enabled", false)
-        end
-    end
-end
-
-function drawLine(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePos = {x = 0, y = deployLineYPos, z = 0}
-    local lineRot = {x = 0, y = 90, z = 0}
-    local lineScale = {x = 5, y = deployLineHeight, z = 0.02}
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "z" or drawData.position == "-z" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    if drawData.fromSide then
-        if drawData.fromSide ~= 0 then
-            drawData.fromCenter = (mapBase/2)-drawData.fromSide
-        end
-    end
-    lineScale.x = mapBase
-    linePos.x = drawData.fromCenter
-    if drawData.position == "x" then
-        -- defaut values
-    end
-    if drawData.position == "-x" then
-        linePos.x = -linePos.x
-    end
-    if drawData.position == "z" then
-        lineRot.y = 0
-        linePos.z = linePos.x
-        linePos.x = 0
-    end
-    if drawData.position == "-z" then
-        lineRot.y = 0
-        linePos.z = -linePos.x
-        linePos.x = 0
-    end
-    spawnLine(linePos, lineRot, lineScale, drawData.color, "deployZone")
-end
-
-function drawArrow(drawData)
-    local mat = getObjectFromGUID(mat_GUID)
-    local linePos = {x = 0, y = deployLineYPos, z = 0}
-    local lineRot = {x = 0, y = 0, z = 0}
-    local lineScale = {x = 5, y = deployLineHeight, z = 0.02}
-    local mapBase =  mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-    if drawData.position == "z" or drawData.position == "-z" then
-        mapBase = mat.getScale().x * sizeMulti
-        mapHeight = mat.getScale().z * sizeMulti
-    end
-    if drawData.wide ~= 0 then
-        mapBase = drawData.wide *2
-    end
-    local triBase = (mapBase / 2) -- triangle with hypotenuse as the needed deploy line
-    local triHeight = (mapHeight / 2) - drawData.fromCenter - drawData.fromEdge -- triangle with hypotenuse as the needed deploy line
-    local edgeAngle = 0 -- angle of the line from the given map edge
-    local edgeAngleRad = 0
-    local halfTriBase = 0 -- triangle with hypotenuse that is half the line lenght
-    local halfTriHeight = 0 -- triangle with hypotenuse that is half the line lenght
-    lineScale.x = math.sqrt(math.pow(triBase, 2) + math.pow(triHeight, 2))
-    edgeAngleRad = math.atan(triBase / triHeight)
-    edgeAngle = math.deg(edgeAngleRad)
-    lineRot.y = edgeAngle
-    halfTriBase = (lineScale.x / 2) * math.sin(edgeAngleRad)
-    halfTriHeight = (lineScale.x  / 2 ) * math.cos(edgeAngleRad)
-    linePos.x = triHeight - halfTriHeight + drawData.fromCenter
-    linePos.z = -1 * (triBase - halfTriBase)
-    if drawData.position == "x" then
-        --default values
-    end
-    if drawData.position == "-x" then
-        linePos.z = -linePos.z
-        linePos.x = -linePos.x
-    end
-    if drawData.position == "z" then
-        local tmp = linePos.z
-        linePos.z = linePos.x
-        linePos.x = -tmp
-        lineRot.y = 90 + lineRot.y
-    end
-    if drawData.position == "-z" then
-        local tmp = linePos.z
-        linePos.z = -linePos.x
-        linePos.x = tmp
-        lineRot.y = 90 + lineRot.y
-    end
-
-    spawnLine(linePos, lineRot, lineScale, drawData.color, "deployZone")
-    if drawData.position == "x" or drawData.position == "-x"  then
-        linePos.z = -linePos.z
-        lineRot.y = -lineRot.y
-    end
-    if drawData.position == "z" or drawData.position == "-z"  then
-        linePos.x = -linePos.x
-        lineRot.y = -lineRot.y
-    end
-    spawnLine(linePos, lineRot, lineScale, drawData.color, "deployZone")
-end
-
-function spawnLine(linePos, lineRot, lineScale, color, type)
-    local lineObj = spawnObject({ --Chip_10
-        type = "BlockSquare",
-        position = linePos,
-        rotation = lineRot,
-        scale = lineScale,
-    })
-    if lineObj then
-        lineObj.setLock(true)
-        lineObj.setGMNotes(type)
-        lineObj.setColorTint(color)
-        local blockComp = lineObj.getComponent("BoxCollider")
-        blockComp.set("enabled", false)
-    end
-end
-
-function destroyDeployZones()
-    for i, obj in ipairs(getAllObjects()) do
-        if obj.getGMNotes() == "deployZone" then
-            obj.destroy()
-        end
-    end
-end
-
-function disableCollidersDeployZones()
-    for i, obj in ipairs(getAllObjects()) do
-        if obj.getGMNotes() == "deployZone" or obj.getGMNotes() == "areaDeny" or obj.getGMNotes() == "quarter" then
-            local blockComp = obj.getComponent("BoxCollider")
-            blockComp.set("enabled", false)
-        end
-    end
-
-end
--- END deploy zones MANAGER
-
-
-simulation = true -- is used to test in single player
-redFirstLbl = "Start Game\n(Lock in scenario first)"
-blueFirstLbl = "Start Game\n(Lock in scenario first)"
-inGame = false
-gameTurnCounter = nil
-armyMover = ""
-first = "Red"
-currentTurn = "Red"
-cpEveryTurn = true
-
--- track if player has gained CP so far this battle round
--- true if a CP has been gained, else false
-redCpIncrementTracker = false
-blueCpIncrementTracker = false
-
-phases = {"Command", "Movement", "Shooting", "Charge", "Fight"}
-currentPhase = 1
-startBtn = {
-    index = 1, label = "Lock scenario in", click_function = "startGame", function_owner = self,
-    position = {0, 5, - 1}, rotation = {0, 0, 0}, height = 750, width = 5000,
-    font_size = 500, color = {0, 0.6, 0}, font_color = {1, 1, 1}
-}
-firstPlayerBtn = {
-    index = 1, label = redFirstLbl, click_function = "togglePlyr", function_owner = self,
-    position = {0, 5, 1}, rotation = {0, 0, 0}, height = 750, width = 5000,
-    font_size = 300, color = {1, 0, 0}, font_color = {1, 1, 1}
-}
-nextPhaseLbl = "P A S S\nT U R N"
-nextPhaseBtn = {
-    index = 1, label = nextPhaseLbl, tooltip = "Left click - Next phase\nRight click - Skip to next turn", click_function = "nextPhase", function_owner = self,
-    position = {500, 5, 0}, rotation = {0, 0, 0}, height = 1500, width = 5000,
-    font_size = 600, color = {1, 0, 0}, font_color = {1, 1, 1}
-}
-IncrementRedCpBtn = {
-    index = 1, label = "Gain a CP", tooltip = "Increment Red CP counter\nWill only increment once per Round", click_function = "incrementRedCp", function_owner = self,
-    position = {-546.2, 5, -3.75}, rotation = {0, 0, 0}, height = 1650, width = 3000,
-    font_size = 600, color = {1, 0, 0}, font_color = {1, 1, 1}
-}
-IncrementBlueCpBtn = {
-    index = 1, label = "Gain a CP", tooltip = "Increment Blue CP counter\nWill only increment once per Round", click_function = "incrementBlueCp", function_owner = self,
-    position = {546.2, 5, -3.75}, rotation = {0, 0, 0}, height = 1650, width = 3000,
-    font_size = 600, color = {0, 0, 1}, font_color = {1, 1, 1}
-}
-
-notePadTxt = ""
---
-menuX = 18
-menuZ = 1.05-1.05
-arrowOffset = 7.5
-
--- DEPLOY ZONES VARIABLES
-
-defaultDeployHeight=2
-deployOffset = 0
-deployMenuBtn = {
-    index = 1, label = "Select deployment zones", click_function = "none", function_owner = self,
-    position = { - menuX, 5, -1}, rotation = {0, 0, 0}, height = 750, width = 8000,
-    font_size = 500, color = {0, 0, 0}, font_color = {1, 1, 1}
-}
-
-secondRowOffset= 1.2
-deployBtn = {
-    index = i, label = "", click_function = "none", function_owner = self,
-    position = { - menuX, 5, 1}, rotation = {0, 0, 0}, height = 750, width = 6000,
-    font_size = 400, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-deployUpBtn = {
-    index = 1, label = "->", click_function = "deployUp", function_owner = self,
-    position = { - menuX + arrowOffset, 5, 1}, rotation = {0, 0, 0}, height = 750, width = 800,
-    font_size = 300, color = {0, 0, 0}, font_color = {1, 1, 1}
-}
-deployDownBtn = {
-    index = 1, label = "<-", click_function = "deployDown", function_owner = self,
-    position = { - menuX - arrowOffset, 5, 1}, rotation = {0, 0, 0}, height = 750, width = 800,
-    font_size = 300, color = {0, 0, 0}, font_color = {1, 1, 1}
-}
-deployOffsetMenuBtn = {
-    index = 1, label = "Deploy\nHeight", click_function = "none", function_owner = self,
-    position = {-menuX - 1.4*arrowOffset, 5, menuZ}, rotation = {0, 0, 0}, height = 450, width = 1000,
-    font_size = 150, color = {0, 0, 0}, font_color = {1, 1, 1}
-}
-deployOffsetUpBtn = {
-    index = 1, label = "+", click_function = "deployOffsetUp", function_owner = self,
-    position = {-menuX - 1.4*arrowOffset, 5, menuZ - secondRowOffset}, rotation = {0, 0, 0}, height = 450, width = 800,
-    font_size = 300, color = {0, 0, 0}, font_color = {1, 1, 1}
-}
-deployOffsetDownBtn = {
-    index = 1, label = "-", click_function = "deployOffsetDown", function_owner = self,
-    position = {-menuX - 1.4*arrowOffset, 5, menuZ + secondRowOffset}, rotation = {0, 0, 0}, height = 450, width = 800,
-    font_size = 300, color = {0, 0, 0}, font_color = {1, 1, 1}
+	[1] = {},
+	[2] = {{
+		pos = {0, 0}
+	}},
+	[3] = {{
+		pos = {0, 0}
+	}, {
+		pos = {12, 0}
+	}, {
+		pos = {0, -12}
+	}, {
+		pos = {0, 12}
+	}, {
+		pos = {-12, 0}
+	}},
+	[4] = {{
+		pos = {-12, 0}
+	}, {
+		pos = {12, 0}
+	}, {
+		pos = {0, 0}
+	}},
+	[5] = {{
+		pos = {0, -12}
+	}, {
+		pos = {0, 12}
+	}, {
+		pos = {12, 0}
+	}, {
+		pos = {-12, 0}
+	}},
+	[6] = {{
+		pos = {12, -12}
+	}, {
+		pos = {0, -12}
+	}, {
+		pos = {-12, -12}
+	}, {
+		pos = {12, 12}
+	}, {
+		pos = {0, 12}
+	}, {
+		pos = {-12, 12}
+	}},
+	[7] = {{
+		pos = {12, -12}
+	}, {
+		pos = {-12, -12}
+	}, {
+		pos = {12, 12}
+	}, {
+		pos = {-12, 12}
+	}},
+	[8] = {{
+		pos = {12, -6}
+	}, {
+		pos = {0, -6}
+	}, {
+		pos = {-12, -6}
+	}, {
+		pos = {12, 6}
+	}, {
+		pos = {0, 6}
+	}, {
+		pos = {-12, 6}
+	}},
+	[9] = {{
+		pos = {-9.84, -9.84}
+	}, {
+		pos = {9.84, 9.84}
+	}}
 }
 objectivesOffsetMenuBtn = {
-    index = 1, label = "Obj.\nHeight", click_function = "none", function_owner = self,
-    position = {-menuX + 1.4*arrowOffset, 5, menuZ}, rotation = {0, 0, 0}, height = 450, width = 1000,
-    font_size = 150, color = {0, 0, 0}, font_color = {1, 1, 1}
+	label = "Obj.\nHeight",
+	click_function = "none",
+	function_owner = self,
+	position = {-10.5, 5, 0},
+	rotation = {0, 0, 0},
+	height = 450,
+	width = 1000,
+	font_size = 150,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
 }
 objectivesOffsetUpBtn = {
-    index = 1, label = "+", click_function = "objectivesOffsetUp", function_owner = self,
-    position = {-menuX + 1.4*arrowOffset, 5, menuZ - secondRowOffset}, rotation = {0, 0, 0}, height = 450, width = 800,
-    font_size = 300, color = {0, 0, 0}, font_color = {1, 1, 1}
+	label = "+",
+	click_function = "objectivesOffsetUp",
+	function_owner = self,
+	position = {-10.5, 5, -1.2},
+	rotation = {0, 0, 0},
+	height = 450,
+	width = 800,
+	font_size = 300,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
 }
 objectivesOffsetDownBtn = {
-    index = 1, label = "-", click_function = "objectivesOffsetDown", function_owner = self,
-    position = {-menuX + 1.4*arrowOffset, 5, menuZ + secondRowOffset}, rotation = {0, 0, 0}, height = 450, width = 800,
-    font_size = 300, color = {0, 0, 0}, font_color = {1, 1, 1}
+	label = "-",
+	click_function = "objectivesOffsetDown",
+	function_owner = self,
+	position = {-10.5, 5, 1.2},
+	rotation = {0, 0, 0},
+	height = 450,
+	width = 800,
+	font_size = 300,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
 }
 
-
--- OBJECTIVES MANAGER
-defaultObjectivesHeight=1.0
-
 function spawnObjectives()
-    destroyAllObjectives()
-    if deploySelected < #DeployZonesData and DeployZonesData[deploySelected].objectivesID then
-        for id, objectiveSet in ipairs(objectivesData) do
-            if objectiveSet.id == DeployZonesData[deploySelected].objectivesID then
-                local spawned = nil
-                local pos={}
-                local template = getObjectFromGUID(Global.getVar("templateObjective_GUID"))
-                for i, objective in ipairs(objectiveSet.objectives) do
-                    pos=objective.pos
-                    if objectivesOffset == nil then pos[2] = 1 else pos[2] = defaultObjectivesHeight + objectivesOffset end
-                    if objective.type=="fixed" then
-                        -- no change to pos
-                    end
-                    if objective.type=="diagonal" then
-                        pos=calcDiagonalPos(objective.orientation, pos[1], pos[2])
-                    end
-                    spawned = template.clone({ position = pos })
-                    spawned.setGMNotes("objective")
-                    spawned.setPosition(pos)
-                    spawned.setRotation({0,270,180})
-                    spawned.setLock(true)
-                end
-                break
-            end
-        end
-    end
-end
-
-function calcDiagonalPos(orientation, relPosOnDiagonal, posY)
-    local posX = 0
-    local posZ = 0
-    local mat = getObjectFromGUID(mat_GUID)
-    local mapBase = mat.getScale().z * sizeMulti --short edge
-    local mapHeight = mat.getScale().x * sizeMulti --long edge
-
-
-    local edgeAngle = 0 -- angle of the line from the given map edge
-    local edgeAngleRad = 0
-    local halfTriBase = 0 -- triangle with hypotenuse that is half the line lenght
-    local halfTriHeight = 0 -- triangle with hypotenuse that is half the line lenght
-
-    edgeAngleRad = math.atan(mapBase / mapHeight)
-    edgeAngle = math.deg(edgeAngleRad)
-
-    posX=relPosOnDiagonal * math.cos(edgeAngleRad)
-    posZ=relPosOnDiagonal * math.sin(edgeAngleRad)
-    if orientation == "xz" then
-        -- default values
-    end
-    if orientation == "x-z" then
-        posZ=-posZ
-    end
-    if orientation == "-xz" then
-        posX=-posX
-    end
-    if orientation == "-x-z" then
-        posX=-posX
-        posZ=-posZ
-    end
-
-    return {posX,posY,posZ}
+	destroyAllObjectives()
+	if DeployZonesData[deploySelected] ~= nil then
+		objectiveSet = objectivesData[DeployZonesData[deploySelected].objectivesID]
+		local pos = {}
+		local y = 1.0 + objectivesOffset
+		local template = getObjectFromGUID(Global.getVar("templateObjective_GUID"))
+		for _, obj in ipairs(objectiveSet) do
+			pos = {obj.pos[1], y, obj.pos[2]}
+			spawned = template.clone()
+			spawned.setPosition(pos)
+			spawned.setRotation({0, 270, 180})
+			spawned.setLock(true)
+			objectives[#objectives + 1] = spawned
+		end
+	end
 end
 
 function destroyAllObjectives()
-    for i, obj in ipairs(getAllObjects()) do
-        if obj.getGMNotes() == "objective" then
-            obj.destroy()
-        end
-    end
-end
-
-function setObjectivesHeight()
-    local pos = {0,0,0}
-    local found_GUID = {}
-    for i, obj in ipairs(getAllObjects()) do
-        if obj.getGMNotes() == "objective" then
-            table.insert(found_GUID, #found_GUID+1, obj.getGUID())
-        end
-    end
-    local found= nil
-    for j, guid in ipairs(found_GUID) do
-        found=getObjectFromGUID(guid)
-        pos = found.getPosition()
-        found.setPosition({pos[1], defaultObjectivesHeight+ objectivesOffset, pos[3]})
-    end
-end
---END objectives manager
-
-quartersPlaced = false
-quartersLblOpen = "Hide\nTable Quarters"
-quartersLblClosed = "Show\nTable Quarters"
-quartersBtn = {
-    label = quartersLblClosed, click_function = "showHideQuarters", function_owner = self,
-    position = {menuX - 9, 5, menuZ }, rotation = {0, 0, 0}, height = 1500, width = 2600,
-    font_size = 300, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-areaPlaced = false
-areaLblOpen = "Hide\nCenter"
-areaLblClosed = "Show\nCenter"
-areaBtn = {
-    label = areaLblClosed, click_function = "showHideAreaDeny", function_owner = self,
-    position = {menuX - 3, 5, menuZ }, rotation = {0, 0, 0}, height = 1500, width = 2600,
-    font_size = 300, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-engagePlaced = false
-engageLblOpen = "Hide\nCorners"
-engageLblClosed = "Show\nCorners"
-engageBtn = {
-    label = engageLblClosed, click_function = "showHideEngage", function_owner = self,
-    position = {menuX + 3, 5, menuZ}, rotation = {0, 0, 0}, height = 1500, width = 2600,
-    font_size = 300, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-stratreservesPlaced = false
-stratreservesLblOpen = "Hide\nMaelstrom Deployment"
-stratreservesLblClosed = "Show\nMaelstrom Deployment"
-stratreservesBtn = {
-    label = stratreservesLblClosed, click_function = "showHideStratreserves", function_owner = self,
-    position = {menuX + 9, 5, menuZ}, rotation = {0, 0, 0}, height = 1500, width = 2600,
-    font_size = 300, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-deploymentIngamePlaced = false
-deployIngameLblOpen = "Hide/Show\ndeployment\nzones"
-deployIngameLblClosed = "Show/hide\ndeployment\nzones"
-deployIngameBtn = {
-    index = 1, label = deployIngameLblClosed, click_function = "showHideIngameDeployment", function_owner = self,
-    position = {menuX + -18, 5, menuZ}, rotation = {0, 0, 0}, height = 1500, width = 2600,
-    font_size = 300, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-investigatePlaced = false
-investigateLblOpen = "Hide\nCamp Sites"
-investigateLblClosed = "Show\nCamp Sites"
-investigateBtn = {
-    label = investigateLblClosed, click_function = "showHideInvestigateSignals", function_owner = self,
-    position = {menuX + 15, 5, menuZ}, rotation = {0, 0, 0}, height = 1500, width = 2600,
-    font_size = 300, color = {1, 1, 1}, font_color = {0, 0, 0}
-}
-position = {menuX, 5, menuZ}
-
-
-
-function writeMenus()
-    self.clearButtons()
-    if not sizeConfirmed then
-        writeSizeMenu()
-        writeDeployMenu()
-    else
-        if inGame == false then
-            writeStartMenu()
-            writeDeployMenu()
-        else
-            writeIngameMenu()
-        end
-    end
-
-end
-
-function writeStartMenu()
-    if gameMode ~= "game" then return end
-    self.createButton(startBtn)
-    self.createButton(firstPlayerBtn)
-end
-
-function writeDeployMenu()
-    deployBtn.label = DeployZonesData[deploySelected].name
-    self.createButton(deployBtn)
-    self.createButton(deployUpBtn)
-    self.createButton(deployDownBtn)
-    self.createButton(deployOffsetMenuBtn)
-    self.createButton(deployOffsetUpBtn)
-    self.createButton(deployOffsetDownBtn)
-    self.createButton(deployMenuBtn)
-    self.createButton(objectivesOffsetDownBtn)
-    self.createButton(objectivesOffsetUpBtn)
-    self.createButton(objectivesOffsetMenuBtn)
-
-    self.createButton(areaBtn)
-    self.createButton(quartersBtn)
-    self.createButton(engageBtn)
-    self.createButton(stratreservesBtn)
-    self.createButton(investigateBtn)
-
-    if gameMode == "game" then
-        self.createButton(missionHeaderBtn)
-        self.createButton(randomiseMissionBtn)
-        self.createButton(randomTournamentMissionBtn)
-        self.createButton(missionSelectionDownBtn)
-        self.createButton(missionSelectionUpBtn)
-        self.createButton(missionSelectionDispBtn)
-    end
-end
-
-function writeIngameMenu()
-    self.createButton(areaBtn)
-    self.createButton(engageBtn)
-    self.createButton(quartersBtn)
-    self.createButton(stratreservesBtn)
-    self.createButton(investigateBtn)
-    self.createButton(deployIngameBtn)
-    self.createButton(IncrementRedCpBtn)
-    self.createButton(IncrementBlueCpBtn)
-
-    nextPhaseBtn.color = currentTurn
-    local visibleTo=nextPhaseBtn.color
-    Global.UI.setAttribute("passTurn", "visibility", visibleTo)
-    Global.UI.setAttribute("passTurnBtn", "color", nextPhaseBtn.color)
-    nextPhaseBtn.label = phases[currentPhase].."\nNEXT PHASE"
-    if currentPhase == #phases then
-        nextPhaseBtn.label = phases[currentPhase].."\nPASS TURN"
-    end
-    Global.UI.setValue("passTurnTxt", nextPhaseBtn.label)
-    self.createButton(nextPhaseBtn)
-end
-
-function startGame(obj, player, alt)
-    if alt then
-        simulation = true
-    end
-    local playerList = Player.getPlayers()
-    local numberOfPlayers = 0
-    for i, p in ipairs(playerList) do
-        numberOfPlayers = numberOfPlayers + 1
-    end
-
-    if Player["Red"].seated == false or Player["Blue"].seated == false then
-        broadcastToAll("", {1, 0, 0})
-        if simulation == false then
-            return
-        end
-    end
-    Global.call("recordPlayers")
-    inGame = true
-
-
-
-    startCustomTurns()
-    destroyDeployZones()
-    deploymentIngamePlaced = false
-    areaPlaced = false
-    broadcastToAll(phases[currentPhase].." phase", "Yellow")
-    resetActivationTokens()
-    Notes.setNotes("")
-    writeMenus()
-    simulation = false
-end
-
-function resetActivationTokens()
-    for i, obj in ipairs(getAllObjects()) do
-        if obj.getVar("BCBtype") == "ActivationToken" then
-            obj.call("resetAlredyActed")
-        end
-    end
-end
-
-function newRoundStarted()
-    redCpIncrementTracker = false
-    blueCpIncrementTracker = false
-end
-
-function incrementRedCp(params)
-    if not inGame then return end
-    if not redCpIncrementTracker then
-        redCpIncrementTracker = true
-        redCpCounter.Counter.increment()
-    else
-        broadcastToAll("Red has already gained a CP this battle round!", "Yellow")
-    end
-end
-
-function incrementBlueCp(params)
-    if not inGame then return end
-    if not blueCpIncrementTracker then
-        blueCpIncrementTracker = true
-        blueCpCounter.Counter.increment()
-    else
-        broadcastToAll("Blue has already gained a CP this battle round!", "Yellow")
-    end
-end
-
-function nextPhase(obj, player_color_click, alt_click)
-    resetActivationTokens()
-    if alt_click then
-        passTurn(obj, player_color_click, alt_click)
-        return
-    end
-    currentPhase = currentPhase + 1
-    if currentPhase > #phases then
-        currentPhase = 1
-        passTurn(obj, player_color_click, alt_click)
-    end
-    broadcastToAll(phases[currentPhase].." phase", "Yellow")
-    writeMenus()
-end
-
-function passTurn(obj, player_color_click, alt_click)
-    if player_color_click ~= currentTurn then
-
-        if simulation then
-            broadcastToAll("INTRUDER", "Pink")
-        else
-            return
-        end
-
-    end
-    currentPhase = 1
-    if currentTurn == "Red" then
-        currentTurn = "Blue" -- it has to be the opposite
-        blueTurnCounter.call("increaseSelf")
-        blueCpCounter.Counter.increment()
-        if cpEveryTurn then
-          redCpCounter.Counter.increment()
-          Wait.time(function() broadcastToAll("", "White") end, 0.3)
-        else
-          Wait.time(function() broadcastToAll("", "Blue") end, 0.3)
-        end
-    else
-        currentTurn = "Red"
-        redTurnCounter.call("increaseSelf")
-        redCpCounter.Counter.increment()
-        if cpEveryTurn then
-          blueCpCounter.Counter.increment()
-          Wait.time(function() broadcastToAll("", "White") end, 0.3)
-        else
-          Wait.time(function() broadcastToAll("", "Red") end, 0.3)
-        end
-    end
-    if simulation then
-        broadcastToAll("It's "..currentTurn.." turn", currentTurn)
-    else
-        if Player[currentTurn].steam_name then
-            broadcastToAll("It's "..Player[currentTurn].steam_name.." turn", currentTurn)
-        else
-            broadcastToAll("It's "..currentTurn.." turn", currentTurn)
-        end
-    end
-    writeMenus()
-end
-
-function startCustomTurns()
-    if first == "Red" then
-        currentTurn = "Blue" -- it has to be the opposite
-    else
-        currentTurn = "Red"
-    end
-    passTurn(self, currentTurn, false)
-end
-
-function startBuiltinTurns()
-    if first == "Red" then
-        Turns.order = {"Red", "Blue"}
-    else
-        Turns.order = {"Blue", "Red"}
-    end
-    Turns.pass_turns = true
-    Turns.enable = false
-    Turns.enable = true
-end
-
-function togglePlyr()
-    self.clearButtons()
-    if first == "Red" then
-        firstPlayerBtn.label = blueFirstLbl
-        firstPlayerBtn.color = {0, 0, 1}
-        first = "Blue"
-    else
-        firstPlayerBtn.label = redFirstLbl
-        firstPlayerBtn.color = {1, 0, 0}
-        first = "Red"
-    end
-    writeMenus()
-end
-
-function placeDeploy()
-    destroyDeployZones()
-    local data = DeployZonesData[deploySelected]
-    drawDeployZone(data)
-    if data.objectivesID then
-        spawnObjectives()
-    end
-    writeMenus()
-end
-
-function deployUp()
-    deployUpDown(true)
-end
-
-function deployDown()
-    deployUpDown(false)
-end
-
-function deployUpDown(upDown)
-    deployOffset = 0
-    objectivesOffset = 0
-    deploymentPregamePlaced = true
-    if DeployZonesData[deploySelected].objectivesID then
-        destroyAllObjectives()
-    end
-    local add=1
-    if not upDown then
-        add=-1
-    end
-    deploySelected = deploySelected + add
-    if deploySelected > #DeployZonesData then
-        deploySelected = 1
-    end
-    if deploySelected < 1 then
-        deploySelected = #DeployZonesData
-    end
-    writeMenus()
-    placeDeploy()
-end
-
-function deployOffsetUp()
-    deployOffsetUpDown(true)
-end
-
-function deployOffsetDown()
-    deployOffsetUpDown(false)
-end
-
-function deployOffsetUpDown(upDown) -- true up, false down
-    local amt = 1
-    if not upDown then amt = -1 end
-    deployOffset = deployOffset + amt
-    if deployOffset > 25 then
-        deployOffset = 25
-    end
-    if deployOffset < 0 then
-        deployOffset = 0
-    end
-    writeMenus()
-    setDeployHeight()
+	for _, obj in ipairs(objectives) do
+		obj.destroy()
+	end
+	objectives = {}
 end
 
 function objectivesOffsetUp()
-    objectivesOffsetUpDown(true)
+	objectivesOffsetUpDown(true)
 end
-
 function objectivesOffsetDown()
-    objectivesOffsetUpDown(false)
+	objectivesOffsetUpDown(false)
 end
 
-function objectivesOffsetUpDown(upDown) -- true up, false down
-    local amt = 0.2
-    if not upDown then amt = -0.2 end
-    objectivesOffset = objectivesOffset + amt
-    if objectivesOffset > 25 then
-        objectivesOffset = 25
-    end
-    if objectivesOffset < 0 then
-        objectivesOffset = 0
-    end
-    writeMenus()
-    setObjectivesHeight()
+function objectivesOffsetUpDown(upDown)
+	if upDown then
+		objectivesOffset = objectivesOffset + 0.2
+		if objectivesOffset > 25 then
+			objectivesOffset = 25
+		end
+	else
+		objectivesOffset = objectivesOffset - 0.2
+		if objectivesOffset < 0 then
+			objectivesOffset = 0
+		end
+	end
+	writeMenus()
+	local pos = {0, 0, 0}
+	for _, obj in ipairs(objectives) do
+		pos = obj.getPosition()
+		obj.setPosition({pos[1], 1.0 + objectivesOffset, pos[3]})
+	end
 end
 
-
-function showHideIngameDeployment()
-    if deploymentIngamePlaced == false then -- place
-        deployIngameBtn.label = deployIngameLblOpen
-        if deploySelected < #DeployZonesData then
-            drawDeployZone(DeployZonesData[deploySelected])
-        end
-        deploymentIngamePlaced = true
-    else -- recall
-        deployIngameBtn.label = deployIngameLblClosed
-        if deploySelected < #DeployZonesData then
-            destroyDeployZones()
-        end
-        deploymentIngamePlaced = false
-    end
-    writeMenus()
-end
-
-function showHideAreaDeny()
-    if areaPlaced == false then -- place
-        areaBtn.label = areaLblOpen
-        drawCircle({color="White", fromCenter=6}, "areaDeny")
-        drawCircle({color="White", fromCenter=3}, "areaDeny")
-        areaPlaced = true
-    else -- recall
-        areaBtn.label = areaLblClosed
-        for i, obj in ipairs(getAllObjects()) do
-            if obj.getGMNotes() == "areaDeny" then
-                obj.destroy()
-            end
-        end
-        areaPlaced = false
-    end
-    writeMenus()
-end
-
-function showHideEngage()
-    if not engagePlaced then
-        engageBtn.label = engageLblOpen
-
-        local mat = getObjectFromGUID(mat_GUID)
-        local lineScale = {x = 0, y = deployLineHeight, z = 0.02}
-        local mapBase = mat.getScale().z * sizeMulti -- short edge
-        local mapHeight = mat.getScale().x * sizeMulti -- long edge
-
-        -- Engage lines
-        xLength = (mapHeight / 2) - 3
-        zLength = (mapBase / 2) - 3
-        lineScale.x = xLength
-        --(linePos, lineRot, lineScale, color, orientation, type)
-        spawnLine({(xLength / 2) + 3, deployLineHeight, -3}, {0, 0, 0}, lineScale, "White", "engage")
-        spawnLine({(xLength / 2) + 3, deployLineHeight, 3}, {0, 0, 0}, lineScale, "White", "engage")
-        spawnLine({((xLength / 2) * -1) - 3, deployLineHeight, -3}, {0, 0, 0}, lineScale, "White", "engage")
-        spawnLine({((xLength / 2) * -1) - 3, deployLineHeight, 3}, {0, 0, 0}, lineScale, "White", "engage")
-        lineScale.x = zLength
-        spawnLine({-3, deployLineHeight, (zLength / 2) + 3}, {0, 90, 0}, lineScale, "White", "engage")
-        spawnLine({3, deployLineHeight, (zLength / 2) + 3}, {0, 90, 0}, lineScale, "White", "engage")
-        spawnLine({-3, deployLineHeight, (((zLength / 2) * -1) - 3)}, {0, 90, 0}, lineScale, "White", "engage")
-        spawnLine({3, deployLineHeight, (((zLength / 2) * -1) - 3)}, {0, 90, 0}, lineScale, "White", "engage")
-
-        engagePlaced = true
-    else
-        engageBtn.label = engageLblClosed
-
-        for i, obj in ipairs(getAllObjects()) do
-            if obj.getGMNotes() == "engage" then
-                obj.destroy()
-            end
-        end
-        engagePlaced = false
-    end
-
-    writeMenus()
-end
-
-function showHideQuarters()
-    if quartersPlaced == false then -- place
-        quartersBtn.label = quartersLblOpen
-        local mat = getObjectFromGUID(mat_GUID)
-        local lineScale = {x = 5, y = deployLineHeight, z = 0.02}
-        local mapBase = mat.getScale().z * sizeMulti --short edge
-        local mapHeight = mat.getScale().x * sizeMulti --long edge
-        --(linePos, lineRot, lineScale, color, orientation, type)
-        lineScale.x = mapHeight
-        spawnLine({0, deployLineHeight, 0}, {0,0,0}, lineScale, "White", "quarter")
-        lineScale.x = mapBase
-        spawnLine({0, deployLineHeight ,0}, {0,90,0}, lineScale, "White", "quarter")
-        quartersPlaced = true
-    else -- recall
-        quartersBtn.label = quartersLblClosed
-        for i, obj in ipairs(getAllObjects()) do
-            if obj.getGMNotes() == "quarter" then
-                obj.destroy()
-            end
-        end
-        quartersPlaced = false
-    end
-    writeMenus()
-end
-
-function showHideStratreserves()
-    if not stratreservesPlaced then
-        stratreservesBtn.label = stratreservesLblOpen
-
-        local playerSides = "None"
-
-        -- check that a deployment zone has been specified to determine which sides to colour
-        if DeployZonesData[deploySelected].name ~= "None" then
-            local deployZoneLayout = DeployZonesData[deploySelected].draw[1]
-            playerSides = "long"
-
-            -- check if deployment has short sides as Player Sides
-            if deployZoneLayout["type"] == "line" and deployZoneLayout["position"] == "x" then
-                playerSides = "short"
-            elseif deployZoneLayout["type"] == "triangle" then
-                playerSides = "short"
-            end
-        end
-
-        local mat = getObjectFromGUID(mat_GUID)
-        local lineScale = {x = 0, y = deployLineHeight, z = 0.02}
-        local mapBase = mat.getScale().z * sizeMulti -- short edge
-        local mapHeight = mat.getScale().x * sizeMulti -- long edge
-
-        -- Strategic reserves lines
-        --(linePos, lineRot, lineScale, color, orientation, type)
-        lineScale.x = mapHeight
-
-        if playerSides == "long" then
-            spawnLine({0, deployLineHeight, (mapBase / 2) - 6}, {0, 0, 0}, lineScale, "Red", "stratreserves")
-            spawnLine({0, deployLineHeight, -((mapBase / 2) - 6)}, {0, 0, 0}, lineScale, "Teal", "stratreserves")
-        else
-            spawnLine({0, deployLineHeight, (mapBase / 2) - 6}, {0, 0, 0}, lineScale, "White", "stratreserves")
-            spawnLine({0, deployLineHeight, -((mapBase / 2) - 6)}, {0, 0, 0}, lineScale, "White", "stratreserves")
-        end
-        lineScale.x = mapBase
-
-        if playerSides == "short" then
-            spawnLine({(mapHeight / 2) - 6, deployLineHeight, 0}, {0, 90, 0}, lineScale, "Red", "stratreserves")
-            spawnLine({-((mapHeight / 2) - 6), deployLineHeight, 0}, {0, 90, 0}, lineScale, "Teal", "stratreserves")
-        else
-            spawnLine({(mapHeight / 2) - 6, deployLineHeight, 0}, {0, 90, 0}, lineScale, "White", "stratreserves")
-            spawnLine({-((mapHeight / 2) - 6), deployLineHeight, 0}, {0, 90, 0}, lineScale, "White", "stratreserves")
-        end
-
-        stratreservesPlaced = true
-    else
-        stratreservesBtn.label = stratreservesLblClosed
-
-        for i, obj in ipairs(getAllObjects()) do
-            if obj.getGMNotes() == "stratreserves" then
-                obj.destroy()
-            end
-        end
-        stratreservesPlaced = false
-    end
-
-    writeMenus()
-end
-
-function showHideInvestigateSignals()
-    if not investigatePlaced then
-        investigateBtn.label = investigateLblOpen
-        drawCornerQuarterCircles(12, "investigate")
-        investigatePlaced = true
-    else
-        investigateBtn.label = investigateLblClosed
-
-        for i, obj in ipairs(getAllObjects()) do
-            if obj.getGMNotes() == "investigate" then
-                obj.destroy()
-            end
-        end
-        investigatePlaced = false
-    end
-
-    writeMenus()
-end
-
---[[
-GUID reference for primary / mission / deployment cards
-Yeah, I could use variables but I didn't, oh well
-
-Sites of Power ec78cd
-Scorched Earth 3ad5a3
-Purge the Foe 5444d4
-Priority Targets f97708
-Deploy Servo-Skulls 44ff29
-Take and Hold 884291
-Supply Drop a34ae1
-The Ritual 646b49
-Vital Ground 6fc1c2
-
-Chilling Rain db0022
-Hidden Supplies 0dc3c3
-Scrambler Fields aea986
-Chosen Battlefield 876ac7
-
-Hammer and Anvil 117c77
-Cum 7e4b95
-Sweeping Engagement 381d7c
-Search and Destroy ad4220
-Crucible of Battle 3c0679
-]]--
-
-tournamentMissions = {
-    -- Take and Hold / Chilling Rain / Search and Destroy
-    {name = "A", primary = "884291", mission = "db0022", deployment = "ad4220"},
-    -- Priority Targets / Hidden Supplies / Search and Destroy
-    {name = "B", primary = "f97708", mission = "0dc3c3", deployment = "ad4220"},
-    -- The Ritual / Scrambler Fields / Sweeping Engagement
-    {name = "C", primary = "646b49", mission = "aea986", deployment = "381d7c"},
-    -- Deploy Servo-skulls / Chilling Rain / Search and Destroy
-    {name = "D", primary = "44ff29", mission = "db0022", deployment = "ad4220"},
-    -- Take and Hold / Chosen Battlefield / Sweeping Engagement
-    {name = "E", primary = "884291", mission = "876ac7", deployment = "381d7c"},
-    -- Supply Drop / Chilling Rain / Search and Destroy
-    {name = "F", primary = "a34ae1", mission = "db0022", deployment = "ad4220"},
-    -- Sites of Power / Chilling Rain / Hammer and Anvil
-    {name = "G", primary = "ec78cd", mission = "db0022", deployment = "117c77"},
-    -- The Ritual / Chilling Rain / Hammer and Anvil
-    {name = "H", primary = "646b49", mission = "db0022", deployment = "117c77"},
-    -- Take and Hold / Hidden Supplies / Hammer and Anvil
-    {name = "I", primary = "884291", mission = "0dc3c3", deployment = "117c77"},
-    -- Priority Targets / Chilling Rain / Crucible of Battle
-    {name = "J", primary = "f97708", mission = "db0022", deployment = "3c0679"},
-    -- Deploy Servo-skulls / Hidden Supplies / Crucible of Battle
-    {name = "K", primary = "44ff29", mission = "0dc3c3", deployment = "3c0679"},
-    -- Scorched Earth / Chilling Rain / Dawn of War
-    {name = "L", primary = "3ad5a3", mission = "db0022", deployment = "7e4b95"},
-    -- Purge the Foe / Chilling Rain / Crucible of Battle
-    {name = "M", primary = "5444d4", mission = "db0022", deployment = "3c0679"},
-    -- Priority Targets / Chosen Battlefield / Dawn of War
-    {name = "N", primary = "f97708", mission = "876ac7", deployment = "7e4b95"},
-    -- Vital Ground / Chilling Rain / Crucible of Battle
-    {name = "O", primary = "6fc1c2", mission = "db0022", deployment = "3c0679"}
+deployLineHeight = 2.1
+deployLineYPos = 2.0
+deployOffset = 0
+deployments = {}
+DeployZonesData = {{
+	name = "Domination",
+	objectivesID = 2,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 0
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 0
+	}}
+}, {
+	name = "To The Death",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Hold Ground",
+	objectivesID = 2,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Lords of Battle",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 0
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 0
+	}}
+}, {
+	name = "Reconnoitre",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "A Clash By MoonLight",
+	objectivesID = 2,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Seize The Prizes",
+	objectivesID = 4,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Contest of Champions",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 0
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 0
+	}}
+}, {
+	name = "Capture and Control",
+	objectivesID = 3,
+	draw = { -- TODO fix deploy zones
+	{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 0
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "z",
+		fromCenter = -12
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 0
+	}}
+}, {
+	name = "Heirloom of Ages Past ",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Fog of War",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Storm the Camp",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Command the Battlefield",
+	objectivesID = 2,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Retrieval",
+	objectivesID = 9,
+	draw = {{
+		type = "diagonal",
+		color = "Red",
+		position = "x",
+		fromCenter = -3
+	}, {
+		type = "diagonal",
+		color = "Teal",
+		position = "x",
+		fromCenter = 3
+	}}
+}, {
+	name = "Breakthrough",
+	objectivesID = 5,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 0
+	}}
+}, {
+	name = "Destroy The Supplies",
+	objectivesID = 6,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Divide & Conquer",
+	objectivesID = 4,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Assassination",
+	objectivesID = 1,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 0
+	}}
+}, {
+	name = "Stake a Claim ",
+	objectivesID = 3,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Sites of Power",
+	objectivesID = 7,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Treasure Horde",
+	objectivesID = 8,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "Escort the Wounded",
+	objectivesID = 6,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Lead from the Front",
+	objectivesID = 4,
+	draw = {{
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 12
+	}, {
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 12
+	}}
+}, {
+	name = "Convergence",
+	objectivesID = 5,
+	draw = {{
+		type = "line",
+		color = "Red",
+		position = "z",
+		fromCenter = 250
+	}, {
+		type = "line",
+		color = "Teal",
+		position = "-z",
+		fromCenter = 250
+	}}
+}, {
+	name = "None",
+	objectivesID = 1,
+	draw = {}
+}}
+deploySelected = #DeployZonesData
+draw_types = {
+	["line"] = drawLine,
+	["diagonal"] = drawDiagonal,
+	["circle"] = drawCircle
 }
 
-function missionSelectionDown()
-    if canChangeMission then
-        selectedMission = selectedMission - 1
-        if selectedMission <= 0 then selectedMission = #tournamentMissions end
-        updateMission()
-    end
+function drawDiagonal(drawData, nop1, nop2, type)
+	local linePos = {
+		x = 0,
+		y = deployLineYPos,
+		z = 0
+	}
+	local lineRot = {
+		x = 0,
+		y = 0,
+		z = 0
+	}
+	local lineScale = {
+		x = 5,
+		y = deployLineHeight + deployOffset,
+		z = 0.02
+	}
+
+	local mainDiagonal = math.sqrt(math.pow(mat_size, 2) + math.pow(mat_size, 2))
+	local edgeAngleRad = math.atan(mat_size / mat_size)
+	local edgeAngle = math.deg(edgeAngleRad)
+	local edgeLoss = drawData.fromCenter / math.cos(edgeAngleRad)
+	local triBase = mat_size - edgeLoss
+	local ratio = triBase / mat_size
+	lineScale.x = mainDiagonal * ratio
+	lineRot.y = edgeAngle
+	linePos.x = (mat_size / 2) - (lineScale.x / 2) * math.cos(edgeAngleRad)
+	linePos.z = (mat_size / 2) - (lineScale.x / 2) * math.sin(edgeAngleRad)
+	if drawData.position == "-z" then
+		linePos.x = -linePos.x
+		linePos.z = -linePos.z
+	end
+	spawnLine(linePos, lineRot, lineScale, drawData.color, type)
 end
 
-function missionSelectionUp()
-    if canChangeMission then
-        selectedMission = selectedMission + 1
-        if selectedMission > #tournamentMissions then selectedMission = 1 end
-        updateMission()
-    end
+function drawLine(drawData, nop1, nop2, type)
+	local linePos = {
+		x = drawData.fromCenter,
+		y = deployLineYPos,
+		z = 0
+	}
+	local lineRot = {
+		x = 0,
+		y = 90,
+		z = 0
+	}
+	local lineScale = {
+		x = mat_size,
+		y = deployLineHeight + deployOffset,
+		z = 0.02
+	}
+	if drawData.position == "-x" then
+		linePos.x = -linePos.x
+	elseif drawData.position == "z" then
+		lineRot.y = 0
+		linePos.z = linePos.x
+		linePos.x = 0
+	elseif drawData.position == "-z" then
+		lineRot.y = 0
+		linePos.z = -linePos.x
+		linePos.x = 0
+	end
+	spawnLine(linePos, lineRot, lineScale, drawData.color, type)
 end
 
-function randomiseMission()
-    if canChangeMission then
-        selectedMission = 0
-        updateMission()
-    end
+function drawCircle(drawData, centerX, centerZ, type)
+	local ogCirc = getObjectFromGUID(Global.getVar("centerCircle_GUID"))
+	if type == "campSites" then
+		ogCirc = getObjectFromGUID(Global.getVar("quarterCircle_GUID"))
+	end
+	local circObj = ogCirc.clone()
+	if circObj then
+		circObj.setLock(true)
+		circObj.setScale({drawData.fromCenter, deployLineHeight + deployOffset, drawData.fromCenter})
+		circObj.setPosition({centerX, deployLineYPos, centerZ})
+		circObj.setColorTint(drawData.color)
+		circObj.setName("")
+		circObj.getComponent("BoxCollider").set("enabled", false)
+		insertIntoTable(type, circObj)
+	end
 end
 
-function randomTournamentMission()
-    if canChangeMission then
-        selectedMission = math.random(#tournamentMissions)
-        updateMission()
-    end
+function spawnLine(linePos, lineRot, lineScale, color, type)
+	local lineObj = spawnObject({
+		type = "BlockSquare",
+		position = linePos,
+		rotation = lineRot,
+		scale = lineScale
+	})
+	if lineObj then
+		lineObj.setLock(true)
+		lineObj.setColorTint(color)
+		lineObj.getComponent("BoxCollider").set("enabled", false)
+		insertIntoTable(type, lineObj)
+	end
 end
 
-function updateMission()
-    canChangeMission = false
-
-    if selectedMission == 0 then
-        missionSelectionDispBtn.label = "?"
-    else
-        mission = tournamentMissions[selectedMission]
-        missionSelectionDispBtn.label = mission.name
-    end
-    writeMenus()
-
-    Wait.time(function() canChangeMission = true end, 0.3)
+function insertIntoTable(type, obj)
+	if (type == "deployZone") then
+		deployments[#deployments + 1] = obj
+	elseif (type == "maelstrom") then
+		maelstromLines[#maelstromLines + 1] = obj
+	elseif (type == "center") then
+		centers[#centers + 1] = obj
+	elseif (type == "quarter") then
+		quarters[#quarters + 1] = obj
+	elseif (type == "campSites") then
+		campSites[#campSites + 1] = obj
+	end
 end
 
-function recallAll()
-    destroyAllObjectives()
-    destroyDeployZones()
+deployMenuBtn = {
+	label = "Select Deployment Zones",
+	click_function = "none",
+	function_owner = self,
+	position = {-18, 5, -1},
+	rotation = {0, 0, 0},
+	height = 750,
+	width = 8000,
+	font_size = 500,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
+}
+scenarioBtn = {
+	click_function = "none",
+	function_owner = self,
+	position = {-18, 5, 1},
+	rotation = {0, 0, 0},
+	height = 750,
+	width = 6000,
+	font_size = 400
+}
+deployUpBtn = {
+	label = "->",
+	click_function = "deployUp",
+	function_owner = self,
+	position = {-10.5, 5, 1},
+	rotation = {0, 0, 0},
+	height = 750,
+	width = 800,
+	font_size = 300,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
+}
+deployDownBtn = {
+	label = "<-",
+	click_function = "deployDown",
+	function_owner = self,
+	position = {-25.5, 5, 1},
+	rotation = {0, 0, 0},
+	height = 750,
+	width = 800,
+	font_size = 300,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
+}
+deployOffsetMenuBtn = {
+	label = "Deploy\nHeight",
+	click_function = "none",
+	function_owner = self,
+	position = {-10.5, 5, 0},
+	rotation = {0, 0, 0},
+	height = 450,
+	width = 1000,
+	font_size = 150,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
+}
+deployOffsetUpBtn = {
+	label = "+",
+	click_function = "deployOffsetUp",
+	function_owner = self,
+	position = {-10.5, 5, -1.2},
+	rotation = {0, 0, 0},
+	height = 450,
+	width = 800,
+	font_size = 300,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
+}
+deployOffsetDownBtn = {
+	label = "-",
+	click_function = "deployOffsetDown",
+	function_owner = self,
+	position = {-10.5, 5, 1.2},
+	rotation = {0, 0, 0},
+	height = 450,
+	width = 800,
+	font_size = 300,
+	color = {0, 0, 0},
+	font_color = {1, 1, 1}
+}
+
+function drawDeployZone(zone)
+	destroyDeployZones()
+	deployIngameBtn.label = showText .. deployIngameLbl
+	for _, drawData in ipairs(zone.draw) do
+		if draw_types[drawData.type] ~= nil then
+			draw_types[drawData.type](drawData, 0, 0, "deployZone")
+			deployIngameBtn.label = hideText .. deployIngameLbl
+		end
+	end
+end
+
+function deployUp()
+	deployUpDown(true)
+end
+function deployDown()
+	deployUpDown(false)
+end
+
+function deployUpDown(upDown)
+	destroyAllObjectives()
+	if upDown then
+		deploySelected = deploySelected + 1
+		if deploySelected > #DeployZonesData then
+			deploySelected = 1
+		end
+	else
+		deploySelected = deploySelected - 1
+		if deploySelected < 1 then
+			deploySelected = #DeployZonesData
+		end
+	end
+	drawDeployZone(DeployZonesData[deploySelected])
+	spawnObjectives()
+	writeMenus()
+end
+
+function deployOffsetUp()
+	deployOffsetUpDown(true)
+end
+
+function deployOffsetDown()
+	deployOffsetUpDown(false)
+end
+
+function deployOffsetUpDown(upDown)
+	local amt = 1
+	if not upDown then
+		amt = -1
+	end
+	deployOffset = deployOffset + amt
+	if deployOffset > 25 then
+		deployOffset = 25
+	end
+	if deployOffset < 0 then
+		deployOffset = 0
+	end
+	writeMenus()
+end
+
+deployIngameLbl = "\nDeployment\nZones"
+deployIngameBtn = {
+	label = showText .. "/" .. hideText .. deployIngameLbl,
+	click_function = "showHideIngameDeployment",
+	function_owner = self,
+	position = {0, 5, 0},
+	rotation = {0, 0, 0},
+	height = 1500,
+	width = 2600,
+	font_size = 300
+}
+function showHideIngameDeployment()
+	if #deployments == 0 then
+		if DeployZonesData[deploySelected] ~= nil then
+			drawDeployZone(DeployZonesData[deploySelected])
+		else
+			broadcastToAll("Error: No deployment data found for selected scenario", {1, 0, 0})
+		end
+	else
+		destroyDeployZones()
+	end
+	writeMenus()
+end
+function destroyDeployZones()
+	deployIngameBtn.label = showText .. deployIngameLbl
+	for _, obj in ipairs(deployments) do
+		obj.destroy()
+	end
+	deployments = {}
+end
+
+centers = {}
+centersLbl = "\nCenter"
+centersBtn = {
+	label = showText .. centersLbl,
+	click_function = "showCenters",
+	function_owner = self,
+	position = {15, 5, 0},
+	rotation = {0, 0, 0},
+	height = 1500,
+	width = 2600,
+	font_size = 300
+}
+function showCenters()
+	if #centers == 0 then
+		centersBtn.label = hideText .. centersLbl
+		drawCircle({
+			color = "White",
+			fromCenter = 6
+		}, 0, 0, "center")
+		drawCircle({
+			color = "White",
+			fromCenter = 3
+		}, 0, 0, "center")
+	else
+		destroyCenters()
+	end
+	writeMenus()
+end
+function destroyCenters()
+	centersBtn.label = showText .. centersLbl
+	for i, obj in ipairs(centers) do
+		obj.destroy()
+	end
+	centers = {}
+end
+
+quarters = {}
+quartersLbl = "\nTable Quarters"
+quartersBtn = {
+	label = showText .. quartersLbl,
+	click_function = "showHideQuarters",
+	function_owner = self,
+	position = {9, 5, 0},
+	rotation = {0, 0, 0},
+	height = 1500,
+	width = 2600,
+	font_size = 300
+}
+function showHideQuarters()
+	if #quarters == 0 then
+		quartersBtn.label = hideText .. quartersLbl
+		local lineScale = {
+			x = mat_size,
+			y = deployLineHeight + deployOffset,
+			z = 0.02
+		}
+		spawnLine({0, deployLineYPos, 0}, {0, 0, 0}, lineScale, "White", "quarter")
+		spawnLine({0, deployLineYPos, 0}, {0, 90, 0}, lineScale, "White", "quarter")
+	else
+		destroyQuarters()
+	end
+	writeMenus()
+end
+function destroyQuarters()
+	quartersBtn.label = showText .. quartersLbl
+	for _, obj in ipairs(quarters) do
+		obj.destroy()
+	end
+	quarters = {}
+end
+
+maelstromLines = {}
+maelstromLbl = "\nMaelstrom Deployment"
+maelstromBtn = {
+	label = showText .. maelstromLbl,
+	click_function = "showHideMaelstrom",
+	function_owner = self,
+	position = {27, 5, 0},
+	rotation = {0, 0, 0},
+	height = 1500,
+	width = 2600,
+	font_size = 300
+}
+function showHideMaelstrom()
+	if #maelstromLines == 0 then
+		maelstromBtn.label = hideText .. maelstromLbl
+		local lineScale = {
+			x = mat_size,
+			y = deployLineHeight + deployOffset,
+			z = 0.02
+		}
+		local half_mat = mat_size * 0.5
+		spawnLine({0, deployLineYPos, half_mat - 6}, {0, 0, 0}, lineScale, "Red", "maelstrom")
+		spawnLine({0, deployLineYPos, -(half_mat - 6)}, {0, 0, 0}, lineScale, "Teal", "maelstrom")
+		spawnLine({half_mat - 6, deployLineYPos, 0}, {0, 90, 0}, lineScale, "Red", "maelstrom")
+		spawnLine({-(half_mat - 6), deployLineYPos, 0}, {0, 90, 0}, lineScale, "Teal", "maelstrom")
+	else
+		destroyMaelstrom()
+	end
+	writeMenus()
+end
+function destroyMaelstrom()
+	maelstromBtn.label = showText .. maelstromLbl
+	for _, obj in ipairs(maelstromLines) do
+		obj.destroy()
+	end
+	maelstromLines = {}
+end
+
+campSites = {}
+campSitesLbl = "\nCamp Sites"
+campSitesBtn = {
+	label = showText .. campSitesLbl,
+	click_function = "showHideCampSites",
+	function_owner = self,
+	position = {33, 5, 0},
+	rotation = {0, 0, 0},
+	height = 1500,
+	width = 2600,
+	font_size = 300
+}
+function showHideCampSites()
+	if #campSites == 0 then
+		campSitesBtn.label = hideText .. campSitesLbl
+		local half_mat = mat_size * 0.5
+		local drawData = {
+			color = "White",
+			fromCenter = 12
+		}
+		drawCircle(drawData, half_mat, half_mat, "campSites")
+		drawCircle(drawData, half_mat, -half_mat, "campSites")
+		drawCircle(drawData, -half_mat, half_mat, "campSites")
+		drawCircle(drawData, -half_mat, -half_mat, "campSites")
+	else
+		destroyCampSites()
+	end
+	writeMenus()
+end
+function destroyCampSites()
+	campSitesBtn.label = showText .. campSitesLbl
+	for _, obj in ipairs(campSites) do
+		obj.destroy()
+	end
+	campSites = {}
 end
 
 function none()
