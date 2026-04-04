@@ -53,7 +53,7 @@ end
 function recordPlayers()
 	for color, player in pairs(playersByColor) do
 		if playersByColor[color] ~= nil then
-			playersByColor[color] = Player[color]
+			playersByColor[color] = Player[color].steam_id
 		end
 	end
 end
@@ -69,7 +69,7 @@ end
 
 function onPlayerConnect(connectedPlayer)
 	for color, player in pairs(playersByColor) do
-		if player ~= "" and player.steam_id == connectedPlayer.steam_id then
+		if player ~= "" and player == connectedPlayer.steam_id then
 			autoSeatPerson(connectedPlayer)
 		end
 	end

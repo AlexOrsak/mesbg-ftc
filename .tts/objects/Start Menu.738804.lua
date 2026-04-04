@@ -208,13 +208,8 @@ DeployZonesData = {
         objectivesID = 2,
         draw = {{
             type = "line",
-            color = "Red",
+            color = "White",
             position = "z",
-            fromCenter = 0
-        }, {
-            type = "line",
-            color = "Teal",
-            position = "-z",
             fromCenter = 0
         }}
     }, {
@@ -240,13 +235,8 @@ DeployZonesData = {
         objectivesID = 1,
         draw = {{
             type = "line",
-            color = "Red",
+            color = "White",
             position = "z",
-            fromCenter = 0
-        }, {
-            type = "line",
-            color = "Teal",
-            position = "-z",
             fromCenter = 0
         }}
     }, {
@@ -297,20 +287,36 @@ DeployZonesData = {
         }, {
             type = "line",
             color = "Teal",
-            position = "-z",
+            position = "z",
             fromCenter = -12
         }, {
             type = "circle",
-            subtype = "half",
-            color = "Red",
+            subtype = quarterCircle_GUID,
+            color = "Teal",
             position = "z",
-            fromCenter = 0
+            fromCenter = 3,
+            rot = {x = 0, y = 270, z = 0},
         }, {
             type = "circle",
-            subtype = "half",
+            subtype = quarterCircle_GUID,
             color = "Teal",
-            position = "-z",
-            fromCenter = 0
+            position = "z",
+            fromCenter = 3,
+            rot = {x = 0, y = 180, z = 0},
+        },{
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 3,
+            rot = {x = 0, y = 90, z = 0},
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 3,
+            rot = {x = 0, y = 0, z = 0},
         }}
     }, {
         name = "Capture and Control",
@@ -355,19 +361,51 @@ DeployZonesData = {
         objectivesID = 1,
         draw = {{
             type = "circle",
-            color = "Red",
+            subtype = quarterCircle_GUID,
+            color = "Teal",
             position = "z",
-            fromCenter = 12
+            fromCenter = 18,
+            centerX = -24,
+            centerZ = -24,
+            rot = {x = 0, y = 90, z = 0},
         }, {
             type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 18,
+            centerX = 24,
+            centerZ = 24,
+            rot = {x = 0, y = 270, z = 0},
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
             color = "Teal",
-            position = "-z",
-            fromCenter = -12
+            position = "z",
+            fromCenter = 18,
+            centerX = 24,
+            centerZ = -24,
+            rot = {x = 0, y = 0, z = 0},
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 18,
+            centerX = -24,
+            centerZ = 24,
+            rot = {x = 0, y = 180, z = 0},
         }}
     }, {
         name = "Command the Battlefield",
-        objectivesID = 2,
-        draw = {}
+        objectivesID = 1,
+        draw = {{
+            type = "circle",
+            subtype = centerCircle_GUID,
+            color = "White",
+            position = "z",
+            fromCenter = 12
+        }}
     }, {
         name = "Retrieval",
         objectivesID = 9,
@@ -387,7 +425,7 @@ DeployZonesData = {
         objectivesID = 5,
         draw = {{
             type = "line",
-            color = "Red",
+            color = "White",
             position = "z",
             fromCenter = 0
         }}
@@ -409,22 +447,48 @@ DeployZonesData = {
         name = "Divide & Conquer",
         objectivesID = 4,
         draw = {{
-            type = "line",
-            color = "Red",
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Teal",
             position = "z",
-            fromCenter = 250
+            fromCenter = 12,
+            rot = {x = 0, y = 270, z = 0},
+            centerX = 24,
+            centerZ = 24
         }, {
-            type = "line",
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "-z",
+            fromCenter = 12,
+            rot = {x = 0, y = 0, z = 0},
+            centerX = 24,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
             color = "Teal",
             position = "-z",
-            fromCenter = 250
+            fromCenter = 12,
+            rot = {x = 0, y = 90, z = 0},
+            centerX = -24,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 180, z = 0},
+            centerX = -24,
+            centerZ = 24
         }}
     }, {
         name = "Assassination",
         objectivesID = 1,
         draw = {{
             type = "line",
-            color = "Red",
+            color = "White",
             position = "z",
             fromCenter = 0
         }}
@@ -451,14 +515,40 @@ DeployZonesData = {
         objectivesID = 8,
         draw = {{
             type = "circle",
+            subtype = quarterCircle_GUID,
             color = "Red",
             position = "z",
-            fromCenter = 250
+            fromCenter = 12,
+            rot = {x = 0, y = 180, z = 0},
+            centerX = 0,
+            centerZ = 24
+        },{
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 270, z = 0},
+            centerX = 0,
+            centerZ = 24
         }, {
             type = "circle",
+            subtype = quarterCircle_GUID,
             color = "Teal",
-            position = "-z",
-            fromCenter = 250
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 90, z = 0},
+            centerX = 0,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Teal",
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 0, z = 0},
+            centerX = 0,
+            centerZ = -24
         }}
     }, {
         name = "Escort the Wounded",
@@ -493,24 +583,40 @@ DeployZonesData = {
         objectivesID = 5,
         draw = {{
             type = "circle",
-            color = "Red",
-            position = "z",
-            fromCenter = 12
-        }, {
-            type = "circle",
-            color = "Teal",
-            position = "-z",
-            fromCenter = -12
-        }, {
-            type = "circle",
-            color = "Red",
-            position = "-z",
-            fromCenter = 12
-        }, {
-            type = "circle",
+            subtype = quarterCircle_GUID,
             color = "Teal",
             position = "z",
-            fromCenter = -12
+            fromCenter = 12,
+            rot = {x = 0, y = 270, z = 0},
+            centerX = 24,
+            centerZ = 24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "-z",
+            fromCenter = 12,
+            rot = {x = 0, y = 0, z = 0},
+            centerX = 24,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12,
+            rot = {x = 0, y = 90, z = 0},
+            centerX = -24,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 180, z = 0},
+            centerX = -24,
+            centerZ = 24
         }}
     }, {
         name = "None",
@@ -521,7 +627,7 @@ DeployZonesData = {
 deploySelected = #DeployZonesData
 
 
-function drawDiagonal(drawData, nop1, nop2, type, nop3)
+function drawDiagonal(drawData, type)
 	local linePos = {
 		x = 0,
 		y = deployLineYPos,
@@ -550,7 +656,7 @@ function drawDiagonal(drawData, nop1, nop2, type, nop3)
 	spawnLine(linePos, lineRot, lineScale, drawData.color, type)
 end
 
-function drawLine(drawData, nop1, nop2, type, nop3)
+function drawLine(drawData, type)
 	local linePos = {
 		x = drawData.fromCenter,
 		y = deployLineYPos,
@@ -580,10 +686,15 @@ function drawLine(drawData, nop1, nop2, type, nop3)
 	spawnLine(linePos, lineRot, lineScale, drawData.color, type)
 end
 
-function drawCircle(drawData, centerX, centerZ, type, rotation_if_split_circle)
-    local rot = rotation_if_split_circle
+function drawCircle(drawData, type)
+    local centerX = drawData.centerX ~= nil and drawData.centerX or 0
+    local centerZ = drawData.centerZ ~= nil and drawData.centerZ or 0
     local pos = {x = centerX, y = deployLineYPos, z = centerZ}
     local scale = {x = drawData.fromCenter, y = deployLineHeight + deployOffset, z = drawData.fromCenter}
+    local rot = nil
+    if drawData.rot ~= nil then
+        rot = drawData.rot
+    end
     local callback = function(spawned_obj)
         spawned_obj.setLock(true)
         spawned_obj.setColorTint(drawData.color)
@@ -620,9 +731,15 @@ draw_types = {
 function drawDeployZone(zone)
 	destroyDeployZones()
 	deployIngameBtn.label = showText .. deployIngameLbl
+    if #zone.draw == 0 then
+        return
+    end
 	for _, drawData in ipairs(zone.draw) do
 		if draw_types[drawData.type] ~= nil then
-			draw_types[drawData.type](drawData, 0, 0, "deployZone", false)
+            if drawData.subtype ~= nil then
+                drawData.circ = getObjectFromGUID(drawData.subtype)
+            end
+			draw_types[drawData.type](drawData, "deployZone")
 			deployIngameBtn.label = hideText .. deployIngameLbl
 		end
 	end
@@ -823,12 +940,12 @@ function showCenters()
 			color = "White",
 			fromCenter = 6,
             circ = circ
-		}, 0, 0, "center", nil)
+		}, "center")
 		drawCircle({
 			color = "White",
 			fromCenter = 3,
             circ = circ
-		}, 0, 0, "center", nil)
+		}, "center")
 	else
 		destroyCenters()
 	end
@@ -941,10 +1058,19 @@ function showHideCorners()
 			fromCenter = 12,
             circ = getObjectFromGUID(quarterCircle_GUID)
 		}
-		drawCircle(drawData, half_mat, half_mat, "corners", {x = 0, y = 270, z = 0})
-		drawCircle(drawData, half_mat, -half_mat, "corners", {x = 0, y = 0, z = 0})
-		drawCircle(drawData, -half_mat, half_mat, "corners", {x = 0, y = 180, z = 0})
-		drawCircle(drawData, -half_mat, -half_mat, "corners", {x = 0, y = 90, z = 0})
+        drawData.rot = {x = 0, y = 270, z = 0}
+        drawData.centerX = half_mat
+        drawData.centerZ = half_mat
+		drawCircle(drawData, "corners")
+        drawData.rot.y = 0
+        drawData.centerZ = -half_mat
+		drawCircle(drawData, "corners")
+        drawData.rot.y = 90
+        drawData.centerX = -half_mat
+		drawCircle(drawData, "corners")
+        drawData.rot.y = 180
+        drawData.centerZ = half_mat
+		drawCircle(drawData, "corners")
 	else
 		destroyCorners()
 	end
