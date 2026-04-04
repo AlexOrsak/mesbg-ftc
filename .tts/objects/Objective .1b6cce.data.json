@@ -1,18 +1,18 @@
 {
   "GUID": "1b6cce",
-  "Name": "Objective",
+  "Name": "Custom_Model",
   "Transform": {
     "posX": 26.38177,
     "posY": 0.812445,
     "posZ": -9.819764,
-    "rotX": 0,
-    "rotY": 0,
-    "rotZ": 0,
+    "rotX": -2.2055497e-8,
+    "rotY": 359.9661,
+    "rotZ": -5.73128546e-7,
     "scaleX": 1,
     "scaleY": 1,
     "scaleZ": 1
   },
-  "Nickname": "Objective",
+  "Nickname": "Objective ",
   "Description": "",
   "GMNotes": "",
   "AltLookAngle": {
