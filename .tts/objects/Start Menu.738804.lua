@@ -886,6 +886,8 @@ function deployOffsetUpDown(upDown)
 	if deployOffset < 0 then
 		deployOffset = 0
 	end
+    destroyDeployZones()
+    drawDeployZone(DeployZonesData[deploySelected])
 	writeMenus()
 end
 
