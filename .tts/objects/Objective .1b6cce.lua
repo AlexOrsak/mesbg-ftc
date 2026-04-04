@@ -1,63 +1,21 @@
-function onLoad()
-	circle = {
-		color             = {0, 0.8, 0.4}, --RGB color of the circle
-		radius            = 1,           --radius of the circle around the object
-		show              = false,       --should the circle be shown by default?
-		steps             = 64,          --number of segments that make up the circle
-		thickness         = 0.05,         --thickness of the circle line
-		vertical_position = 0.1,           --vertical height of the circle relative to the object
-	}
-end
+radiuses = {0, 1.5, 2.5, 3.5, 6.5, 8.5, 12.5, 18.5, 24.5, 30.5}
+showCircle = false
 
 function onScriptingButtonDown(index, playerColor)
-if Player[playerColor].getHoverObject() == self then
-if index == 1 then
-circle.radius = 1.5
-print('1" circle')
-toggleCircle() end
-if index == 2 then
-circle.radius = 2.5
-print('2" circle')
-toggleCircle() end
-if index == 3 then
-circle.radius = 3.5
-print('3" circle')
-toggleCircle() end
-if index == 4 then
-circle.radius = 6.5
-print('6" circle')
-toggleCircle() end
-if index == 5 then
-circle.radius = 8.5
-print('8" circle')
-toggleCircle() end
-if index == 6 then
-circle.radius = 12.5
-print('12" circle')
-toggleCircle() end
-if index == 7 then
-circle.radius = 18.5
-print('18" circle')
-toggleCircle() end
-if index == 8 then
-circle.radius = 24.5
-print('24" circle')
-toggleCircle() end
-if index == 9 then
-circle.radius = 30.5
-print('30" circle')
-toggleCircle() end
-end
+	if Player[playerColor].getHoverObject() == self then
+		print(math.floor(radiuses[index]) .. '" radius')
+		toggleCircle(radiuses[index])
+	end
 end
 
-function toggleCircle()
-	circle.show = not circle.show
-	if circle.show then
+function toggleCircle(radius)
+	showCircle = not showCircle
+	if showCircle then
 		self.setVectorLines({
 			{
-				points    = getCircleVectorPoints(circle.radius, circle.steps, circle.vertical_position),
-				color     = circle.color,
-				thickness = circle.thickness,
+				points    = getCircleVectorPoints(radius),
+				color     = {0, 0.8, 0.4},
+				thickness = 0.05,
 				rotation  = {0,0,0},
 			}
 		})
@@ -66,15 +24,14 @@ function toggleCircle()
 	end
 end
 
-function getCircleVectorPoints(radius, steps, y)
+function getCircleVectorPoints(radius)
 	local t = {}
-	local d,s,c,r = 360/steps, math.sin, math.cos, math.rad
-	for i = 0,steps do
-		table.insert(t, {
-			c(r(d*i))*radius,
-			y,
-			s(r(d*i))*radius
-		})
+	local step = 0.0981747704247
+	local cos, sin = math.cos, math.sin
+	local rdi = 0
+	for i = 0, 64 do
+		t[i + 1] = { cos(rdi)*radius, 0.1, sin(rdi)*radius }
+		rdi = rdi + step
 	end
 	return t
 end

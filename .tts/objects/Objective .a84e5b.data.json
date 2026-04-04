@@ -1,18 +1,18 @@
 {
   "GUID": "a84e5b",
-  "Name": "Custom_Model",
+  "Name": "Objective",
   "Transform": {
     "posX": 28.5489616,
-    "posY": 0.8124449,
+    "posY": 0.812445,
     "posZ": -9.819764,
-    "rotX": -0.00000208474626,
-    "rotY": 359.966,
-    "rotZ": -6.29953036e-7,
+    "rotX": 0,
+    "rotY": 0,
+    "rotZ": 0,
     "scaleX": 1,
     "scaleY": 1,
     "scaleZ": 1
   },
-  "Nickname": "Objective ",
+  "Nickname": "Objective",
   "Description": "",
   "GMNotes": "",
   "AltLookAngle": {
@@ -59,7 +59,7 @@
     },
     "CastShadows": true
   },
-  "LuaScript": "function onLoad()\r\n\tcircle = {\r\n\t\tcolor             = {0, 0.8, 0.4}, --RGB color of the circle\r\n\t\tradius            = 1,           --radius of the circle around the object\r\n\t\tshow              = false,       --should the circle be shown by default?\r\n\t\tsteps             = 64,          --number of segments that make up the circle\r\n\t\tthickness         = 0.05,         --thickness of the circle line\r\n\t\tvertical_position = 0.1,           --vertical height of the circle relative to the object\r\n\t}\r\nend\r\n\r\nfunction onScriptingButtonDown(index, playerColor)\r\nif Player[playerColor].getHoverObject() == self then\r\nif index == 1 then\r\ncircle.radius = 1.5\r\nprint('1\" circle')\r\ntoggleCircle() end\r\nif index == 2 then\r\ncircle.radius = 2.5\r\nprint('2\" circle')\r\ntoggleCircle() end\r\nif index == 3 then\r\ncircle.radius = 3.5\r\nprint('3\" circle')\r\ntoggleCircle() end\r\nif index == 4 then\r\ncircle.radius = 6.5\r\nprint('6\" circle')\r\ntoggleCircle() end\r\nif index == 5 then\r\ncircle.radius = 8.5\r\nprint('8\" circle')\r\ntoggleCircle() end\r\nif index == 6 then\r\ncircle.radius = 12.5\r\nprint('12\" circle')\r\ntoggleCircle() end\r\nif index == 7 then\r\ncircle.radius = 18.5\r\nprint('18\" circle')\r\ntoggleCircle() end\r\nif index == 8 then\r\ncircle.radius = 24.5\r\nprint('24\" circle')\r\ntoggleCircle() end\r\nif index == 9 then\r\ncircle.radius = 30.5\r\nprint('30\" circle')\r\ntoggleCircle() end\r\nend\r\nend\r\n\r\nfunction toggleCircle()\r\n\tcircle.show = not circle.show\r\n\tif circle.show then\r\n\t\tself.setVectorLines({\r\n\t\t\t{\r\n\t\t\t\tpoints    = getCircleVectorPoints(circle.radius, circle.steps, circle.vertical_position),\r\n\t\t\t\tcolor     = circle.color,\r\n\t\t\t\tthickness = circle.thickness,\r\n\t\t\t\trotation  = {0,0,0},\r\n\t\t\t}\r\n\t\t})\r\n\telse\r\n\t\tself.setVectorLines({})\r\n\tend\r\nend\r\n\r\nfunction getCircleVectorPoints(radius, steps, y)\r\n\tlocal t = {}\r\n\tlocal d,s,c,r = 360/steps, math.sin, math.cos, math.rad\r\n\tfor i = 0,steps do\r\n\t\ttable.insert(t, {\r\n\t\t\tc(r(d*i))*radius,\r\n\t\t\ty,\r\n\t\t\ts(r(d*i))*radius\r\n\t\t})\r\n\tend\r\n\treturn t\r\nend",
+  "LuaScript": "radiuses = {0, 1.5, 2.5, 3.5, 6.5, 8.5, 12.5, 18.5, 24.5, 30.5}\r\nshowCircle = false\r\n\r\nfunction onScriptingButtonDown(index, playerColor)\r\n\tif Player[playerColor].getHoverObject() == self then\r\n\t\tprint(math.floor(radiuses[index]) .. '\" radius')\r\n\t\ttoggleCircle(radiuses[index])\r\n\tend\r\nend\r\n\r\nfunction toggleCircle(radius)\r\n\tshowCircle = not showCircle\r\n\tif showCircle then\r\n\t\tself.setVectorLines({\r\n\t\t\t{\r\n\t\t\t\tpoints    = getCircleVectorPoints(radius),\r\n\t\t\t\tcolor     = {0, 0.8, 0.4},\r\n\t\t\t\tthickness = 0.05,\r\n\t\t\t\trotation  = {0,0,0},\r\n\t\t\t}\r\n\t\t})\r\n\telse\r\n\t\tself.setVectorLines({})\r\n\tend\r\nend\r\n\r\nfunction getCircleVectorPoints(radius)\r\n\tlocal t = {}\r\n\tlocal step = 0.0981747704247\r\n\tlocal cos, sin = math.cos, math.sin\r\n\tlocal rdi = 0\r\n\tfor i = 0, 64 do\r\n\t\tt[i + 1] = { cos(rdi)*radius, 0.1, sin(rdi)*radius }\r\n\t\trdi = rdi + step\r\n\tend\r\n\treturn t\r\nend",
   "LuaScriptState": "",
   "XmlUI": "",
   "AttachedDecals": [
