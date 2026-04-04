@@ -155,9 +155,9 @@ function spawnObjectives()
 		local template_data = getObjectFromGUID(templateObjective_GUID).getData()
         local callback = function(spawned)
             spawned.setLock(true)
-            objectives[#objectives + 1] = spawned
+            objectives[#objectives + 1] = spawned --TODO fix so that spamming thru missions deletes the objectives correctly
         end
-		for i, obj in ipairs(objectiveSet) do
+		for _, obj in ipairs(objectiveSet) do
 			pos = {x = obj[1], y = y, z = obj[2]}
 			Utils.cloneObjectNoSound(template_data, pos, {x = 0, y = 270, z = 180}, nil, callback)
 		end
