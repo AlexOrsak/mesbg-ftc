@@ -1,29 +1,21 @@
-radiuses = {0, 1.5, 2.5, 3.5, 6.5, 8.5, 12.5, 18.5, 24.5, 30.5}
-circle = {
-	color             = {0, 0.8, 0.4},
-	radius            = 1.5,
-	show              = false,
-	steps             = 64,
-	thickness         = 0.05,
-	vertical_position = 0.1,
-}
+local radiuses = {0, 1.5, 2.5, 3.5, 6.5, 8.5, 12.5, 18.5, 24.5, 30.5}
+local showCircle = false
 
 function onScriptingButtonDown(index, playerColor)
 	if Player[playerColor].getHoverObject() == self then
-		circle.radius = radiuses[index]
 		print(math.floor(radiuses[index]) .. '" radius')
-		toggleCircle()
+		toggleCircle(radiuses[index])
 	end
 end
 
-function toggleCircle()
-	circle.show = not circle.show
-	if circle.show then
+function toggleCircle(radius)
+	showCircle = not showCircle
+	if showCircle then
 		self.setVectorLines({
 			{
-				points    = getCircleVectorPoints(circle.radius, circle.steps, circle.vertical_position),
-				color     = circle.color,
-				thickness = circle.thickness,
+				points    = getCircleVectorPoints(radius),
+				color     = {0, 0.8, 0.4},
+				thickness = 0.05,
 				rotation  = {0,0,0},
 			}
 		})
@@ -32,12 +24,14 @@ function toggleCircle()
 	end
 end
 
-function getCircleVectorPoints(radius, steps, y)
+function getCircleVectorPoints(radius)
 	local t = {}
-	local d = 360 / steps
-	for i = 0, steps do
-		rdi = math.rad(d*i)
-		t[#t + 1] = { math.cos(rdi)*radius, y, math.sin(rdi)*radius }
+	local step = 0.0981747704247
+	local cos, sin = math.cos, math.sin
+	local rdi = 0
+	for i = 0, 64 do
+		t[i + 1] = { cos(rdi)*radius, 0.1, sin(rdi)*radius }
+		rdi = rdi + step
 	end
 	return t
 end

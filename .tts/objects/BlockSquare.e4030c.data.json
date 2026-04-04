@@ -21,9 +21,9 @@
     "z": 0
   },
   "ColorDiffuse": {
-    "r": 0.213470787,
-    "g": 0.225983888,
-    "b": 0.235187083
+    "r": 0.213470876,
+    "g": 0.225983977,
+    "b": 0.235187173
   },
   "LayoutGroupSortIndex": 0,
   "Value": 0,
@@ -39,7 +39,7 @@
   "GridProjection": false,
   "HideWhenFaceDown": false,
   "Hands": false,
-  "LuaScript": "function onLoad()\r\nself.interactable = false\r\nend",
+  "LuaScript": "function onLoad()\r\n    self.interactable = false\r\nend",
   "LuaScriptState": "",
   "XmlUI": ""
 }

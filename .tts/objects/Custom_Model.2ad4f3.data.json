@@ -21,9 +21,9 @@
     "z": 0
   },
   "ColorDiffuse": {
-    "r": 0.09015589,
-    "g": 0.09580117,
-    "b": 0.0845055059
+    "r": 0.090156056,
+    "g": 0.095801346,
+    "b": 0.08450567
   },
   "LayoutGroupSortIndex": 0,
   "Value": 0,
@@ -49,7 +49,7 @@
     "TypeIndex": 4,
     "CastShadows": true
   },
-  "LuaScript": "function onload() self.interactable = false\nend\n\nfunction onSave()\r\n    saveTable = {interactable = self.interactable}\r\n    saved_data = JSON.encode(saveTable)\r\n    return saved_data\r\nend\r\n\r\nfunction onLoad(saved_data)\r\n    loadTable = JSON.decode(saved_data)\r\n    self.interactable = loadTable.interactable\r\nend",
+  "LuaScript": "function onLoad()\r\n\tself.interactable = false\r\nend",
   "LuaScriptState": "{\"interactable\":false}",
   "XmlUI": ""
 }

@@ -5,7 +5,7 @@
     "posX": 80,
     "posY": -0.8945656,
     "posZ": 0.00391176576,
-    "rotX": 0.00000341522446,
+    "rotX": 0.000003415222,
     "rotY": 270,
     "rotZ": 0,
     "scaleX": 1,
@@ -59,7 +59,7 @@
     },
     "CastShadows": true
   },
-  "LuaScript": "radiuses = {0, 1.5, 2.5, 3.5, 6.5, 8.5, 12.5, 18.5, 24.5, 30.5}\r\ncircle = {\r\n\tcolor             = {0, 0.8, 0.4},\r\n\tradius            = 1.5,\r\n\tshow              = false,\r\n\tsteps             = 64,\r\n\tthickness         = 0.05,\r\n\tvertical_position = 0.1,\r\n}\r\n\r\nfunction onScriptingButtonDown(index, playerColor)\r\n\tif Player[playerColor].getHoverObject() == self then\r\n\t\tcircle.radius = radiuses[index]\r\n\t\tprint(math.floor(radiuses[index]) .. '\" radius')\r\n\t\ttoggleCircle()\r\n\tend\r\nend\r\n\r\nfunction toggleCircle()\r\n\tcircle.show = not circle.show\r\n\tif circle.show then\r\n\t\tself.setVectorLines({\r\n\t\t\t{\r\n\t\t\t\tpoints    = getCircleVectorPoints(circle.radius, circle.steps, circle.vertical_position),\r\n\t\t\t\tcolor     = circle.color,\r\n\t\t\t\tthickness = circle.thickness,\r\n\t\t\t\trotation  = {0,0,0},\r\n\t\t\t}\r\n\t\t})\r\n\telse\r\n\t\tself.setVectorLines({})\r\n\tend\r\nend\r\n\r\nfunction getCircleVectorPoints(radius, steps, y)\r\n\tlocal t = {}\r\n\tlocal d = 360 / steps\r\n\tfor i = 0, steps do\r\n\t\trdi = math.rad(d*i)\r\n\t\tt[#t + 1] = { math.cos(rdi)*radius, y, math.sin(rdi)*radius }\r\n\tend\r\n\treturn t\r\nend",
+  "LuaScript": "local radiuses = {0, 1.5, 2.5, 3.5, 6.5, 8.5, 12.5, 18.5, 24.5, 30.5}\r\nlocal showCircle = false\r\n\r\nfunction onScriptingButtonDown(index, playerColor)\r\n\tif Player[playerColor].getHoverObject() == self then\r\n\t\tprint(math.floor(radiuses[index]) .. '\" radius')\r\n\t\ttoggleCircle(radiuses[index])\r\n\tend\r\nend\r\n\r\nfunction toggleCircle(radius)\r\n\tshowCircle = not showCircle\r\n\tif showCircle then\r\n\t\tself.setVectorLines({\r\n\t\t\t{\r\n\t\t\t\tpoints    = getCircleVectorPoints(radius),\r\n\t\t\t\tcolor     = {0, 0.8, 0.4},\r\n\t\t\t\tthickness = 0.05,\r\n\t\t\t\trotation  = {0,0,0},\r\n\t\t\t}\r\n\t\t})\r\n\telse\r\n\t\tself.setVectorLines({})\r\n\tend\r\nend\r\n\r\nfunction getCircleVectorPoints(radius)\r\n\tlocal t = {}\r\n\tlocal step = 0.0981747704247\r\n\tlocal cos, sin = math.cos, math.sin\r\n\tlocal rdi = 0\r\n\tfor i = 0, 64 do\r\n\t\tt[i + 1] = { cos(rdi)*radius, 0.1, sin(rdi)*radius }\r\n\t\trdi = rdi + step\r\n\tend\r\n\treturn t\r\nend",
   "LuaScriptState": "",
   "XmlUI": ""
 }

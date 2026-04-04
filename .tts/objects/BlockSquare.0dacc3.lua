@@ -1,3 +1,3 @@
 function onLoad()
-self.interactable = false
+    self.interactable = false
 end

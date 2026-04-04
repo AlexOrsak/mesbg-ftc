@@ -59,7 +59,7 @@
     },
     "CastShadows": true
   },
-  "LuaScript": "function onLoad()\r\nself.interactable = false\r\nend",
+  "LuaScript": "function onLoad()\r\n    self.interactable = false\r\nend",
   "LuaScriptState": "",
   "XmlUI": ""
 }

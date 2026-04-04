@@ -59,7 +59,7 @@
     },
     "CastShadows": true
   },
-  "LuaScript": "function onload() self.interactable = false\nend\n\nfunction onSave()\r\n    saveTable = {interactable = self.interactable}\r\n    saved_data = JSON.encode(saveTable)\r\n    return saved_data\r\nend\r\n\r\nfunction onLoad(saved_data)\r\n    loadTable = JSON.decode(saved_data)\r\n    self.interactable = loadTable.interactable\r\nend",
+  "LuaScript": "function onLoad()\r\n\tself.interactable = false\r\nend\r\n",
   "LuaScriptState": "{\"interactable\":false}",
   "XmlUI": ""
 }

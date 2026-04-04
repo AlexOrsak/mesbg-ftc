@@ -1,13 +1,15 @@
-centerCircle_GUID = "51ee2f"
-quarterCircle_GUID = "51ee3f"
-templateObjective_GUID = "573333"
-mat_GUID = "4ee1f2"
-inGame = false
-hideText = "Hide"
-showText = "Show"
+local Utils = require("utils")
+local centerCircle_GUID = "51ee2f"
+local quarterCircle_GUID = "51ee3f"
+local templateObjective_GUID = "573333"
+local mat_GUID = "4ee1f2"
+local inGame = false
+local hideText = "Hide"
+local showText = "Show"
+local mat_size = 48
 
 function onLoad(saved_data)
-	self.setRotation({0, 270, 0})
+	self.setRotation({x = 0, y = 270, z = 0})
 	if saved_data ~= "" then
 		local loaded_data = JSON.decode(saved_data)
         if loaded_data.svInGame ~= nil then
@@ -20,10 +22,6 @@ function onLoad(saved_data)
 		    Notes.setNotes(loaded_data.svNotes)
         end
 	end
-
-	mat = getObjectFromGUID(mat_GUID)
-	mat_size = mat.getScale() * 36
-
 	writeMenus()
 	if not inGame then
 		printToAll("Welcome to MESBG FTC", "Yellow")
@@ -69,7 +67,7 @@ function writeMenus()
 	self.createButton(centersBtn)
 	self.createButton(quartersBtn)
 	self.createButton(maelstromBtn)
-	self.createButton(campSitesBtn)
+	self.createButton(cornersBtn)
 	self.createButton(deployOffsetMenuBtn)
 	self.createButton(deployOffsetUpBtn)
 	self.createButton(deployOffsetDownBtn)
@@ -94,84 +92,22 @@ function startGame()
 	destroyCenters()
 	destroyQuarters()
 	destroyMaelstrom()
-	destroyCampSites()
+	destroyCorners()
 	writeMenus()
 end
 
 objectives = {}
 objectivesOffset = 0
-objectivesData = {
-	[1] = {},
-	[2] = {{
-		pos = {0, 0}
-	}},
-	[3] = {{
-		pos = {0, 0}
-	}, {
-		pos = {12, 0}
-	}, {
-		pos = {0, -12}
-	}, {
-		pos = {0, 12}
-	}, {
-		pos = {-12, 0}
-	}},
-	[4] = {{
-		pos = {-12, 0}
-	}, {
-		pos = {12, 0}
-	}, {
-		pos = {0, 0}
-	}},
-	[5] = {{
-		pos = {0, -12}
-	}, {
-		pos = {0, 12}
-	}, {
-		pos = {12, 0}
-	}, {
-		pos = {-12, 0}
-	}},
-	[6] = {{
-		pos = {12, -12}
-	}, {
-		pos = {0, -12}
-	}, {
-		pos = {-12, -12}
-	}, {
-		pos = {12, 12}
-	}, {
-		pos = {0, 12}
-	}, {
-		pos = {-12, 12}
-	}},
-	[7] = {{
-		pos = {12, -12}
-	}, {
-		pos = {-12, -12}
-	}, {
-		pos = {12, 12}
-	}, {
-		pos = {-12, 12}
-	}},
-	[8] = {{
-		pos = {12, -6}
-	}, {
-		pos = {0, -6}
-	}, {
-		pos = {-12, -6}
-	}, {
-		pos = {12, 6}
-	}, {
-		pos = {0, 6}
-	}, {
-		pos = {-12, 6}
-	}},
-	[9] = {{
-		pos = {-9.84, -9.84}
-	}, {
-		pos = {9.84, 9.84}
-	}}
+objectivesData = { -- (x, z) coordinates of objectives, relative to center of the board)
+    [1] = {}, -- no objectives
+    [2] = {{0, 0}}, -- one objective in the center
+    [3] = {{0, 0}, {12, 0}, {0, -12}, {0, 12}, {-12, 0}},
+    [4] = {{-12, 0}, {12, 0}, {0, 0}},
+    [5] = {{0, -12}, {0, 12}, {12, 0}, {-12, 0}},
+    [6] = {{12, -12}, {0, -12}, {-12, -12}, {12, 12}, {0, 12}, {-12, 12}},
+    [7] = {{12, -12}, {-12, -12}, {12, 12}, {-12, 12}},
+    [8] = {{12, -6}, {0, -6}, {-12, -6}, {12, 6}, {0, 6}, {-12, 6}},
+    [9] = {{-9.84, -9.84}, {9.84, 9.84}}
 }
 objectivesOffsetMenuBtn = {
 	label = "Obj.\nHeight",
@@ -216,14 +152,14 @@ function spawnObjectives()
 		objectiveSet = objectivesData[DeployZonesData[deploySelected].objectivesID]
 		local pos = {}
 		local y = 1.0 + objectivesOffset
-		local template = getObjectFromGUID(Global.getVar("templateObjective_GUID"))
-		for _, obj in ipairs(objectiveSet) do
-			pos = {obj.pos[1], y, obj.pos[2]}
-			spawned = template.clone()
-			spawned.setPosition(pos)
-			spawned.setRotation({0, 270, 180})
-			spawned.setLock(true)
-			objectives[#objectives + 1] = spawned
+		local template_data = getObjectFromGUID(templateObjective_GUID).getData()
+        local callback = function(spawned)
+            spawned.setLock(true)
+            objectives[#objectives + 1] = spawned
+        end
+		for i, obj in ipairs(objectiveSet) do
+			pos = {x = obj[1], y = y, z = obj[2]}
+			Utils.cloneObjectNoSound(template_data, pos, {x = 0, y = 270, z = 180}, nil, callback)
 		end
 	end
 end
@@ -244,21 +180,21 @@ end
 
 function objectivesOffsetUpDown(upDown)
 	if upDown then
-		objectivesOffset = objectivesOffset + 0.2
+		objectivesOffset = objectivesOffset + 0.5
 		if objectivesOffset > 25 then
 			objectivesOffset = 25
 		end
 	else
-		objectivesOffset = objectivesOffset - 0.2
+		objectivesOffset = objectivesOffset - 0.5
 		if objectivesOffset < 0 then
 			objectivesOffset = 0
 		end
 	end
 	writeMenus()
-	local pos = {0, 0, 0}
+	local pos = {x = 0, y = 0, z = 0}
 	for _, obj in ipairs(objectives) do
 		pos = obj.getPosition()
-		obj.setPosition({pos[1], 1.0 + objectivesOffset, pos[3]})
+		obj.setPosition({x = pos.x, y = 1.0 + objectivesOffset, z = pos.z})
 	end
 end
 
@@ -266,356 +202,326 @@ deployLineHeight = 2.1
 deployLineYPos = 2.0
 deployOffset = 0
 deployments = {}
-DeployZonesData = {{
-	name = "Domination",
-	objectivesID = 2,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 0
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 0
-	}}
-}, {
-	name = "To The Death",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Hold Ground",
-	objectivesID = 2,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Lords of Battle",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 0
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 0
-	}}
-}, {
-	name = "Reconnoitre",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "A Clash By MoonLight",
-	objectivesID = 2,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Seize The Prizes",
-	objectivesID = 4,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Contest of Champions",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 0
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 0
-	}}
-}, {
-	name = "Capture and Control",
-	objectivesID = 3,
-	draw = { -- TODO fix deploy zones
-	{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 0
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "z",
-		fromCenter = -12
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 0
-	}}
-}, {
-	name = "Heirloom of Ages Past ",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Fog of War",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Storm the Camp",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Command the Battlefield",
-	objectivesID = 2,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Retrieval",
-	objectivesID = 9,
-	draw = {{
-		type = "diagonal",
-		color = "Red",
-		position = "x",
-		fromCenter = -3
-	}, {
-		type = "diagonal",
-		color = "Teal",
-		position = "x",
-		fromCenter = 3
-	}}
-}, {
-	name = "Breakthrough",
-	objectivesID = 5,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 0
-	}}
-}, {
-	name = "Destroy The Supplies",
-	objectivesID = 6,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Divide & Conquer",
-	objectivesID = 4,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Assassination",
-	objectivesID = 1,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 0
-	}}
-}, {
-	name = "Stake a Claim ",
-	objectivesID = 3,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Sites of Power",
-	objectivesID = 7,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Treasure Horde",
-	objectivesID = 8,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "Escort the Wounded",
-	objectivesID = 6,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Lead from the Front",
-	objectivesID = 4,
-	draw = {{
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 12
-	}, {
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 12
-	}}
-}, {
-	name = "Convergence",
-	objectivesID = 5,
-	draw = {{
-		type = "line",
-		color = "Red",
-		position = "z",
-		fromCenter = 250
-	}, {
-		type = "line",
-		color = "Teal",
-		position = "-z",
-		fromCenter = 250
-	}}
-}, {
-	name = "None",
-	objectivesID = 1,
-	draw = {}
-}}
-deploySelected = #DeployZonesData
-draw_types = {
-	["line"] = drawLine,
-	["diagonal"] = drawDiagonal,
-	["circle"] = drawCircle
+DeployZonesData = {
+    {
+        name = "Domination",
+        objectivesID = 2,
+        draw = {{
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 0
+        }, {
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 0
+        }}
+    }, {
+        name = "To The Death",
+        objectivesID = 1,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Hold Ground",
+        objectivesID = 2,
+        draw = {}
+    }, {
+        name = "Lords of Battle",
+        objectivesID = 1,
+        draw = {{
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 0
+        }, {
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 0
+        }}
+    }, {
+        name = "Reconnoitre",
+        objectivesID = 1,
+        draw = {}
+    }, {
+        name = "Clash By MoonLight",
+        objectivesID = 2,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Seize The Prizes",
+        objectivesID = 4,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Contest of Champions",
+        objectivesID = 1,
+        draw = {{
+            type = "line",
+            color = "White",
+            position = "z",
+            fromCenter = 0
+        },{
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = -12
+        }, {
+            type = "circle",
+            subtype = "half",
+            color = "Red",
+            position = "z",
+            fromCenter = 0
+        }, {
+            type = "circle",
+            subtype = "half",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 0
+        }}
+    }, {
+        name = "Capture and Control",
+        objectivesID = 3,
+        draw = {
+        {
+            type = "line",
+            color = "White",
+            position = "z",
+            fromCenter = 0
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Teal",
+            position = "z",
+            fromCenter = -12
+        }}
+    }, {
+        name = "Heirloom of Ages Past ",
+        objectivesID = 1,
+        draw = {}
+    }, {
+        name = "Fog of War",
+        objectivesID = 1,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Storm the Camp",
+        objectivesID = 1,
+        draw = {{
+            type = "circle",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }, {
+            type = "circle",
+            color = "Teal",
+            position = "-z",
+            fromCenter = -12
+        }}
+    }, {
+        name = "Command the Battlefield",
+        objectivesID = 2,
+        draw = {}
+    }, {
+        name = "Retrieval",
+        objectivesID = 9,
+        draw = {{
+            type = "diagonal",
+            color = "Red",
+            position = "x",
+            fromCenter = 3
+        }, {
+            type = "diagonal",
+            color = "Teal",
+            position = "x",
+            fromCenter = -3
+        }}
+    }, {
+        name = "Breakthrough",
+        objectivesID = 5,
+        draw = {{
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 0
+        }}
+    }, {
+        name = "Destroy The Supplies",
+        objectivesID = 6,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Divide & Conquer",
+        objectivesID = 4,
+        draw = {{
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 250
+        }, {
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 250
+        }}
+    }, {
+        name = "Assassination",
+        objectivesID = 1,
+        draw = {{
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 0
+        }}
+    }, {
+        name = "Stake a Claim ",
+        objectivesID = 3,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Sites of Power",
+        objectivesID = 7,
+        draw = {}
+    }, {
+        name = "Treasure Horde",
+        objectivesID = 8,
+        draw = {{
+            type = "circle",
+            color = "Red",
+            position = "z",
+            fromCenter = 250
+        }, {
+            type = "circle",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 250
+        }}
+    }, {
+        name = "Escort the Wounded",
+        objectivesID = 6,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Lead from the Front",
+        objectivesID = 4,
+        draw = {{
+            type = "line",
+            color = "Teal",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "line",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }}
+    }, {
+        name = "Convergence",
+        objectivesID = 5,
+        draw = {{
+            type = "circle",
+            color = "Red",
+            position = "z",
+            fromCenter = 12
+        }, {
+            type = "circle",
+            color = "Teal",
+            position = "-z",
+            fromCenter = -12
+        }, {
+            type = "circle",
+            color = "Red",
+            position = "-z",
+            fromCenter = 12
+        }, {
+            type = "circle",
+            color = "Teal",
+            position = "z",
+            fromCenter = -12
+        }}
+    }, {
+        name = "None",
+        objectivesID = 1,
+        draw = {}
+    }
 }
+deploySelected = #DeployZonesData
 
-function drawDiagonal(drawData, nop1, nop2, type)
+
+function drawDiagonal(drawData, nop1, nop2, type, nop3)
 	local linePos = {
 		x = 0,
 		y = deployLineYPos,
@@ -623,7 +529,7 @@ function drawDiagonal(drawData, nop1, nop2, type)
 	}
 	local lineRot = {
 		x = 0,
-		y = 0,
+		y = 45,
 		z = 0
 	}
 	local lineScale = {
@@ -631,17 +537,12 @@ function drawDiagonal(drawData, nop1, nop2, type)
 		y = deployLineHeight + deployOffset,
 		z = 0.02
 	}
-
-	local mainDiagonal = math.sqrt(math.pow(mat_size, 2) + math.pow(mat_size, 2))
-	local edgeAngleRad = math.atan(mat_size / mat_size)
-	local edgeAngle = math.deg(edgeAngleRad)
-	local edgeLoss = drawData.fromCenter / math.cos(edgeAngleRad)
-	local triBase = mat_size - edgeLoss
-	local ratio = triBase / mat_size
-	lineScale.x = mainDiagonal * ratio
-	lineRot.y = edgeAngle
-	linePos.x = (mat_size / 2) - (lineScale.x / 2) * math.cos(edgeAngleRad)
-	linePos.z = (mat_size / 2) - (lineScale.x / 2) * math.sin(edgeAngleRad)
+    local sqrt2 = 1.414213562373 -- sqrt(2)
+	local edgeLoss = drawData.fromCenter / 0.707106781187 -- sin(atan(1)) or cos(atan(1))
+	lineScale.x = sqrt2 * (mat_size - math.abs(edgeLoss))
+    local calc = edgeLoss / 2
+	linePos.x = calc
+	linePos.z = calc
 	if drawData.position == "-z" then
 		linePos.x = -linePos.x
 		linePos.z = -linePos.z
@@ -649,7 +550,7 @@ function drawDiagonal(drawData, nop1, nop2, type)
 	spawnLine(linePos, lineRot, lineScale, drawData.color, type)
 end
 
-function drawLine(drawData, nop1, nop2, type)
+function drawLine(drawData, nop1, nop2, type, nop3)
 	local linePos = {
 		x = drawData.fromCenter,
 		y = deployLineYPos,
@@ -679,21 +580,19 @@ function drawLine(drawData, nop1, nop2, type)
 	spawnLine(linePos, lineRot, lineScale, drawData.color, type)
 end
 
-function drawCircle(drawData, centerX, centerZ, type)
-	local ogCirc = getObjectFromGUID(centerCircle_GUID)
-	if type == "campSites" then
-		ogCirc = getObjectFromGUID(quarterCircle_GUID)
-	end
-	local circObj = ogCirc.clone()
-	if circObj then
-		circObj.setLock(true)
-		circObj.setScale({drawData.fromCenter, deployLineHeight + deployOffset, drawData.fromCenter})
-		circObj.setPosition({centerX, deployLineYPos, centerZ})
-		circObj.setColorTint(drawData.color)
-		circObj.setName("")
-		circObj.getComponent("BoxCollider").set("enabled", false)
-		insertIntoTable(type, circObj)
-	end
+function drawCircle(drawData, centerX, centerZ, type, rotation_if_split_circle)
+    local rot = rotation_if_split_circle
+    local pos = {x = centerX, y = deployLineYPos, z = centerZ}
+    local scale = {x = drawData.fromCenter, y = deployLineHeight + deployOffset, z = drawData.fromCenter}
+    local callback = function(spawned_obj)
+        spawned_obj.setLock(true)
+        spawned_obj.setColorTint(drawData.color)
+        spawned_obj.interactable = false
+        spawned_obj.setName("")
+        spawned_obj.getComponent("MeshCollider").set("enabled", false)
+        insertIntoTable(type, spawned_obj)
+    end
+    Utils.cloneObjectNoSound(drawData.circ.getData(), pos, rot, scale, callback)
 end
 
 function spawnLine(linePos, lineRot, lineScale, color, type)
@@ -701,13 +600,31 @@ function spawnLine(linePos, lineRot, lineScale, color, type)
 		type = "BlockSquare",
 		position = linePos,
 		rotation = lineRot,
-		scale = lineScale
+		scale = lineScale,
+        sound = false,
+        callback_function = function(spawned_obj)
+            spawned_obj.setLock(true)
+            spawned_obj.setColorTint(color)
+            spawned_obj.setName("")
+            spawned_obj.getComponent("BoxCollider").set("enabled", false)
+            insertIntoTable(type, spawned_obj)
+        end
 	})
-	if lineObj then
-		lineObj.setLock(true)
-		lineObj.setColorTint(color)
-		lineObj.getComponent("BoxCollider").set("enabled", false)
-		insertIntoTable(type, lineObj)
+end
+
+draw_types = {
+	["line"] = drawLine,
+	["diagonal"] = drawDiagonal,
+	["circle"] = drawCircle
+}
+function drawDeployZone(zone)
+	destroyDeployZones()
+	deployIngameBtn.label = showText .. deployIngameLbl
+	for _, drawData in ipairs(zone.draw) do
+		if draw_types[drawData.type] ~= nil then
+			draw_types[drawData.type](drawData, 0, 0, "deployZone", false)
+			deployIngameBtn.label = hideText .. deployIngameLbl
+		end
 	end
 end
 
@@ -720,8 +637,8 @@ function insertIntoTable(type, obj)
 		centers[#centers + 1] = obj
 	elseif (type == "quarter") then
 		quarters[#quarters + 1] = obj
-	elseif (type == "campSites") then
-		campSites[#campSites + 1] = obj
+	elseif (type == "corners") then
+		corners[#corners + 1] = obj
 	end
 end
 
@@ -806,17 +723,6 @@ deployOffsetDownBtn = {
 	color = {0, 0, 0},
 	font_color = {1, 1, 1}
 }
-
-function drawDeployZone(zone)
-	destroyDeployZones()
-	deployIngameBtn.label = showText .. deployIngameLbl
-	for _, drawData in ipairs(zone.draw) do
-		if draw_types[drawData.type] ~= nil then
-			draw_types[drawData.type](drawData, 0, 0, "deployZone")
-			deployIngameBtn.label = hideText .. deployIngameLbl
-		end
-	end
-end
 
 function deployUp()
 	deployUpDown(true)
@@ -912,14 +818,17 @@ centersBtn = {
 function showCenters()
 	if #centers == 0 then
 		centersBtn.label = hideText .. centersLbl
+        local circ = getObjectFromGUID(centerCircle_GUID)
 		drawCircle({
 			color = "White",
-			fromCenter = 6
-		}, 0, 0, "center")
+			fromCenter = 6,
+            circ = circ
+		}, 0, 0, "center", nil)
 		drawCircle({
 			color = "White",
-			fromCenter = 3
-		}, 0, 0, "center")
+			fromCenter = 3,
+            circ = circ
+		}, 0, 0, "center", nil)
 	else
 		destroyCenters()
 	end
@@ -953,8 +862,13 @@ function showHideQuarters()
 			y = deployLineHeight + deployOffset,
 			z = 0.02
 		}
-		spawnLine({0, deployLineYPos, 0}, {0, 0, 0}, lineScale, "White", "quarter")
-		spawnLine({0, deployLineYPos, 0}, {0, 90, 0}, lineScale, "White", "quarter")
+        local linePos = {
+            x = 0,
+            y = deployLineYPos,
+            z = 0
+        }
+		spawnLine(linePos, {x = 0, y = 0, z = 0}, lineScale, "White", "quarter")
+		spawnLine(linePos, {x = 0, y = 90, z = 0}, lineScale, "White", "quarter")
 	else
 		destroyQuarters()
 	end
@@ -989,10 +903,10 @@ function showHideMaelstrom()
 			z = 0.02
 		}
 		local half_mat = mat_size * 0.5
-		spawnLine({0, deployLineYPos, half_mat - 6}, {0, 0, 0}, lineScale, "Red", "maelstrom")
-		spawnLine({0, deployLineYPos, -(half_mat - 6)}, {0, 0, 0}, lineScale, "Teal", "maelstrom")
-		spawnLine({half_mat - 6, deployLineYPos, 0}, {0, 90, 0}, lineScale, "Red", "maelstrom")
-		spawnLine({-(half_mat - 6), deployLineYPos, 0}, {0, 90, 0}, lineScale, "Teal", "maelstrom")
+		spawnLine({x = 0, y = deployLineYPos, z = half_mat - 6}, {x = 0, y = 0, z = 0}, lineScale, "White", "maelstrom")
+		spawnLine({x = 0, y = deployLineYPos, z = -(half_mat - 6)}, {x = 0, y = 0, z = 0}, lineScale, "White", "maelstrom")
+		spawnLine({x = half_mat - 6, y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScale, "White", "maelstrom")
+		spawnLine({x = -(half_mat - 6), y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScale, "White", "maelstrom")
 	else
 		destroyMaelstrom()
 	end
@@ -1006,41 +920,42 @@ function destroyMaelstrom()
 	maelstromLines = {}
 end
 
-campSites = {}
-campSitesLbl = "\nCamp Sites"
-campSitesBtn = {
-	label = showText .. campSitesLbl,
-	click_function = "showHideCampSites",
+corners = {}
+cornersLbl = "\nCorners"
+cornersBtn = {
+	label = showText .. cornersLbl,
+	click_function = "showHideCorners",
 	function_owner = self,
-	position = {33, 5, 0},
+	position = {21, 5, 0},
 	rotation = {0, 0, 0},
 	height = 1500,
 	width = 2600,
 	font_size = 300
 }
-function showHideCampSites()
-	if #campSites == 0 then
-		campSitesBtn.label = hideText .. campSitesLbl
+function showHideCorners()
+	if #corners == 0 then
+		cornersBtn.label = hideText .. cornersLbl
 		local half_mat = mat_size * 0.5
 		local drawData = {
 			color = "White",
-			fromCenter = 12
+			fromCenter = 12,
+            circ = getObjectFromGUID(quarterCircle_GUID)
 		}
-		drawCircle(drawData, half_mat, half_mat, "campSites")
-		drawCircle(drawData, half_mat, -half_mat, "campSites")
-		drawCircle(drawData, -half_mat, half_mat, "campSites")
-		drawCircle(drawData, -half_mat, -half_mat, "campSites")
+		drawCircle(drawData, half_mat, half_mat, "corners", {x = 0, y = 270, z = 0})
+		drawCircle(drawData, half_mat, -half_mat, "corners", {x = 0, y = 0, z = 0})
+		drawCircle(drawData, -half_mat, half_mat, "corners", {x = 0, y = 180, z = 0})
+		drawCircle(drawData, -half_mat, -half_mat, "corners", {x = 0, y = 90, z = 0})
 	else
-		destroyCampSites()
+		destroyCorners()
 	end
 	writeMenus()
 end
-function destroyCampSites()
-	campSitesBtn.label = showText .. campSitesLbl
-	for _, obj in ipairs(campSites) do
+function destroyCorners()
+	cornersBtn.label = showText .. cornersLbl
+	for _, obj in ipairs(corners) do
 		obj.destroy()
 	end
-	campSites = {}
+	corners = {}
 end
 
 function none()

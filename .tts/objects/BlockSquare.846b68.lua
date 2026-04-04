@@ -1,8 +1,5 @@
--- === MESBG Scenario Selector (Editable Layout Version v2) ===
--- Bag GUID that contains all scenario cards
 local SCENARIO_BAG_GUID = "4f682e"
 
--- === SCENARIO POOLS ===
 local scenarioPools = {
     {"Domination", "Capture & Control", "Breakthrough", "Stake a Claim"},
     {"To The Death", "Lords of Battle", "Assassination", "Contest of Champions"},
@@ -12,44 +9,37 @@ local scenarioPools = {
     {"Fog of War", "Clash by Moonlight", "Lead from the Front", "Convergence"}
 }
 
--- === EASY LAYOUT SETTINGS ===
--- ↓↓↓ Only edit this section ↓↓↓
 local layout = {
-    scale = 0.50,         -- 🔧 Overall size multiplier (0.75 = 25% smaller)
-    offsetX = 0,          -- 🔧 Move all buttons left/right
-    offsetZ = 0,          -- 🔧 Move all buttons forward/backward
+    scale = 0.50,
+    offsetX = 0,
+    offsetZ = 0,
 
-    -- 🆙 HEIGHT CONTROL
-    uiHeight = 2,         -- 🔧 Raise/lower ALL buttons above the surface (increase to float higher)
+    uiHeight = 2,
 
-    xSpacing = 6.0,       -- 🔧 Horizontal spacing between columns
-    ySpacing = 0.45,      -- 🔧 Vertical spacing between scenario buttons
-    rowSpacing = 4.5,     -- 🔧 Distance between top and bottom row
-    startX = -6.0,        -- 🔧 Leftmost column starting X
-    startZ = -4,          -- 🔧 Z position of top row
+    xSpacing = 6.0,
+    ySpacing = 0.45,
+    rowSpacing = 4.5,
+    startX = -6.0,
+    startZ = -4,
 
-    slotWidth = 2400,     -- 🔧 Width of scenario boxes
-    slotHeight = 100,     -- 🔧 Height of scenario boxes
-    fontSize = 100,       -- 🔧 Font size for scenario boxes
-    slotColor = {0, 0, 0, 0.0},  -- transparent black
+    slotWidth = 2400,
+    slotHeight = 100,
+    fontSize = 100,
+    slotColor = {0, 0, 0, 0.0},
 
-    -- 🎲 RANDOM BUTTON SETTINGS
     randomButtonWidth = 2400,
     randomButtonHeight = 120,
-    randomButtonOffset = -2.6,   -- how far below the last scenario it appears
+    randomButtonOffset = -2.6,
     randomButtonFont = 100,
     randomButtonColor = {0.1, 0.4, 0.1, 1},
 
-    -- 📜 SPAWN ALL BUTTON SETTINGS (NEW)
-    spawnAllButtonWidth = 2400,      -- width of "Spawn All" button
-    spawnAllButtonHeight = 120,      -- height of "Spawn All" button
-    spawnAllButtonOffset = -0.5,      -- distance BELOW the Random Pool button
-    spawnAllButtonFont = 100,        -- font size for "Spawn All" button
-    spawnAllButtonColor = {0.2, 0.2, 0.6, 1},  -- blue
+    spawnAllButtonWidth = 2400,
+    spawnAllButtonHeight = 120,
+    spawnAllButtonOffset = -0.5,
+    spawnAllButtonFont = 100,
+    spawnAllButtonColor = {0.2, 0.2, 0.6, 1},
 }
--- ↑↑↑ Only edit this section ↑↑↑
 
--- === INTERNALS ===
 function onLoad()
     createAllButtons()
 end
@@ -83,11 +73,10 @@ function createAllButtons()
             zOffset = zOffset + layout.ySpacing
         end
 
-        -- 🎲 Random Pool Button
         local randFunc = "rand_pool_" .. i
         self.setVar(randFunc, function(_, _) randomFromPool(i) end)
         self.createButton({
-            label = "🎲 Random Pool " .. i,
+            label = "Random Pool " .. i,
             position = {baseX, layout.uiHeight, baseZ - (zOffset + layout.randomButtonOffset) * layout.scale},
             width = layout.randomButtonWidth * layout.scale,
             height = layout.randomButtonHeight * layout.scale,
@@ -98,11 +87,10 @@ function createAllButtons()
             font_color = {1, 1, 1, 1}
         })
 
-        -- 📜 Spawn All From Pool Button (below random button)
         local spawnAllFunc = "spawn_all_pool_" .. i
         self.setVar(spawnAllFunc, function(_, _) spawnAllFromPool(i) end)
         self.createButton({
-            label = "📜 Spawn All From Pool " .. i,
+            label = "Spawn All From Pool " .. i,
             position = {baseX, layout.uiHeight, baseZ - (zOffset + layout.randomButtonOffset + layout.spawnAllButtonOffset) * layout.scale},
             width = layout.spawnAllButtonWidth * layout.scale,
             height = layout.spawnAllButtonHeight * layout.scale,
@@ -114,10 +102,9 @@ function createAllButtons()
         })
     end
 
-    -- 🎲 FULL RANDOM button (centered below)
     self.setVar("full_random", function(_, _) randomFromAll() end)
     self.createButton({
-        label = "🎲 FULL RANDOM",
+        label = "FULL RANDOM",
         position = {layout.offsetX, layout.uiHeight, (layout.startZ - layout.rowSpacing * 2.4) * layout.scale + layout.offsetZ},
         width = 3200 * layout.scale,
         height = 220 * layout.scale,
@@ -129,11 +116,10 @@ function createAllButtons()
     })
 end
 
--- === Scenario Spawn Logic ===
 function spawnScenario(name)
     local bag = getObjectFromGUID(SCENARIO_BAG_GUID)
     if not bag then
-        broadcastToAll("❌ Scenario bag not found!", {1,0,0})
+        broadcastToAll("Scenario bag not found!", {1,0,0})
         return
     end
 
@@ -144,11 +130,11 @@ function spawnScenario(name)
                 position = self.positionToWorld({0, 2, 0}),
                 smooth = false
             })
-            broadcastToAll("📜 Spawned: " .. name, {0,1,0})
+            broadcastToAll("Spawned: " .. name, {0,1,0})
             return
         end
     end
-    broadcastToAll("⚠️ '" .. name .. "' not found in bag!", {1,0.5,0})
+    broadcastToAll(name .. "' not found in bag!", {1,0.5,0})
 end
 
 function randomFromPool(i)
@@ -165,7 +151,6 @@ function randomFromAll()
     spawnScenario(all[math.random(#all)])
 end
 
--- 📜 Spawn All From Pool Function (NEW)
 function spawnAllFromPool(i)
     local pool = scenarioPools[i]
     if not pool then return end
