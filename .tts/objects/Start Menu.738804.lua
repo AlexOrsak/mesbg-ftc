@@ -563,6 +563,42 @@ DeployZonesData = {
             color = "Red",
             position = "z",
             fromCenter = 12
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "Red",
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 270, z = 0},
+            centerX = 24,
+            centerZ = 24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "White",
+            position = "-z",
+            fromCenter = 12,
+            rot = {x = 0, y = 0, z = 0},
+            centerX = 24,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "White",
+            position = "-z",
+            fromCenter = 12,
+            rot = {x = 0, y = 90, z = 0},
+            centerX = -24,
+            centerZ = -24
+        }, {
+            type = "circle",
+            subtype = quarterCircle_GUID,
+            color = "White",
+            position = "z",
+            fromCenter = 12,
+            rot = {x = 0, y = 180, z = 0},
+            centerX = -24,
+            centerZ = 24
         }}
     }, {
         name = "Lead from the Front",
