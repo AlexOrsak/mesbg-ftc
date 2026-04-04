@@ -10,9 +10,15 @@ function onLoad(saved_data)
 	self.setRotation({0, 270, 0})
 	if saved_data ~= "" then
 		local loaded_data = JSON.decode(saved_data)
-		inGame = loaded_data.svInGame
-		deploySelected = loaded_data.svDeploySelected
-		Notes.setNotes(loaded_data.svNotes)
+        if loaded_data.svInGame ~= nil then
+            inGame = loaded_data.svInGame
+        end
+		if loaded_data.svDeploySelected ~= nil then
+		    deploySelected = loaded_data.svDeploySelected
+        end
+        if loaded_data.svNotes ~= nil then
+		    Notes.setNotes(loaded_data.svNotes)
+        end
 	end
 
 	mat = getObjectFromGUID(mat_GUID)
@@ -39,7 +45,7 @@ function writeMenus()
 		self.createButton(lockInBtn)
 		if DeployZonesData[deploySelected] ~= nil then
 			if deploySelected == #DeployZonesData then
-				scenarioBtn.label = ""
+				scenarioBtn.label = "-"
 			else
 				scenarioBtn.label = "Scenario " .. deploySelected .. " - " .. DeployZonesData[deploySelected].name
 			end
@@ -51,9 +57,11 @@ function writeMenus()
 		self.createButton(objectivesOffsetDownBtn)
 		self.createButton(objectivesOffsetUpBtn)
 		self.createButton(objectivesOffsetMenuBtn)
+    else
+        self.createButton(deployIngameBtn)
 	end
 	if #deployments > 0 then
-		deployIngameBtn.label = hideText .. "\nDeployment\nZones"
+		deployIngameBtn.label = hideText .. deployIngameLbl
 	end
 	if #centers > 0 then
 		centersBtn.label = hideText .. centersLbl
@@ -62,7 +70,6 @@ function writeMenus()
 	self.createButton(quartersBtn)
 	self.createButton(maelstromBtn)
 	self.createButton(campSitesBtn)
-	self.createButton(deployIngameBtn)
 	self.createButton(deployOffsetMenuBtn)
 	self.createButton(deployOffsetUpBtn)
 	self.createButton(deployOffsetDownBtn)
@@ -170,7 +177,7 @@ objectivesOffsetMenuBtn = {
 	label = "Obj.\nHeight",
 	click_function = "none",
 	function_owner = self,
-	position = {-10.5, 5, 0},
+	position = {-8, 5, 0},
 	rotation = {0, 0, 0},
 	height = 450,
 	width = 1000,
@@ -182,7 +189,7 @@ objectivesOffsetUpBtn = {
 	label = "+",
 	click_function = "objectivesOffsetUp",
 	function_owner = self,
-	position = {-10.5, 5, -1.2},
+	position = {-8, 5, -1.2},
 	rotation = {0, 0, 0},
 	height = 450,
 	width = 800,
@@ -194,7 +201,7 @@ objectivesOffsetDownBtn = {
 	label = "-",
 	click_function = "objectivesOffsetDown",
 	function_owner = self,
-	position = {-10.5, 5, 1.2},
+	position = {-8, 5, 1.2},
 	rotation = {0, 0, 0},
 	height = 450,
 	width = 800,
@@ -673,9 +680,9 @@ function drawLine(drawData, nop1, nop2, type)
 end
 
 function drawCircle(drawData, centerX, centerZ, type)
-	local ogCirc = getObjectFromGUID(Global.getVar("centerCircle_GUID"))
+	local ogCirc = getObjectFromGUID(centerCircle_GUID)
 	if type == "campSites" then
-		ogCirc = getObjectFromGUID(Global.getVar("quarterCircle_GUID"))
+		ogCirc = getObjectFromGUID(quarterCircle_GUID)
 	end
 	local circObj = ogCirc.clone()
 	if circObj then
@@ -767,7 +774,7 @@ deployOffsetMenuBtn = {
 	label = "Deploy\nHeight",
 	click_function = "none",
 	function_owner = self,
-	position = {-10.5, 5, 0},
+	position = {-28.5, 5, 0},
 	rotation = {0, 0, 0},
 	height = 450,
 	width = 1000,
@@ -779,7 +786,7 @@ deployOffsetUpBtn = {
 	label = "+",
 	click_function = "deployOffsetUp",
 	function_owner = self,
-	position = {-10.5, 5, -1.2},
+	position = {-28.5, 5, -1.2},
 	rotation = {0, 0, 0},
 	height = 450,
 	width = 800,
@@ -791,7 +798,7 @@ deployOffsetDownBtn = {
 	label = "-",
 	click_function = "deployOffsetDown",
 	function_owner = self,
-	position = {-10.5, 5, 1.2},
+	position = {-28.5, 5, 1.2},
 	rotation = {0, 0, 0},
 	height = 450,
 	width = 800,
@@ -962,7 +969,7 @@ function destroyQuarters()
 end
 
 maelstromLines = {}
-maelstromLbl = "\nMaelstrom Deployment"
+maelstromLbl = "\nMaelstrom"
 maelstromBtn = {
 	label = showText .. maelstromLbl,
 	click_function = "showHideMaelstrom",

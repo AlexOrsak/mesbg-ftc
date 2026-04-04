@@ -15,7 +15,11 @@ end
 
 function onLoad(saved_data)
 	if saved_data ~= "" then
-		for color, player in pairs(JSON.decode(saved_data).svPlayersByColor) do
+        loadedData = JSON.decode(saved_data)
+        if loadedData.svPlayersByColor then
+            playersByColor = loadedData.svPlayersByColor
+        end
+		for color, player in pairs(playersByColor) do
 			if player ~= "" then
 				autoSeatPerson(player)
 			end
