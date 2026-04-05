@@ -155,11 +155,13 @@ function spawnObjectives()
 		local template_data = getObjectFromGUID(templateObjective_GUID).getData()
         local callback = function(spawned)
             spawned.setLock(true)
-            objectives[#objectives + 1] = spawned --TODO fix so that spamming thru missions deletes the objectives correctly
         end
+        local objective_count = 1
 		for _, obj in ipairs(objectiveSet) do
 			pos = {x = obj[1], y = y, z = obj[2]}
-			Utils.cloneObjectNoSound(template_data, pos, {x = 0, y = 270, z = 180}, nil, callback)
+			local cloned_obj = Utils.cloneObjectNoSound(template_data, pos, {x = 0, y = 270, z = 180}, nil, callback)
+            objectives[objective_count] = cloned_obj
+            objective_count = objective_count + 1
 		end
 	end
 end
@@ -737,9 +739,9 @@ function drawCircle(drawData, type)
         spawned_obj.interactable = false
         spawned_obj.setName("")
         spawned_obj.getComponent("MeshCollider").set("enabled", false)
-        insertIntoTable(type, spawned_obj)
     end
-    Utils.cloneObjectNoSound(drawData.circ.getData(), pos, rot, scale, callback)
+    local cloneObj = Utils.cloneObjectNoSound(drawData.circ.getData(), pos, rot, scale, callback)
+    insertIntoTable(type, cloneObj)
 end
 
 function spawnLine(linePos, lineRot, lineScale, color, type)
@@ -754,9 +756,9 @@ function spawnLine(linePos, lineRot, lineScale, color, type)
             spawned_obj.setColorTint(color)
             spawned_obj.setName("")
             spawned_obj.getComponent("BoxCollider").set("enabled", false)
-            insertIntoTable(type, spawned_obj)
         end
 	})
+    insertIntoTable(type, lineObj)
 end
 
 draw_types = {
