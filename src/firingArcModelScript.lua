@@ -9,13 +9,13 @@ local arcs = { -- 1st ARC (can copy paste as many arcs as required)
 
 local arcs_on = 0
 local arc_scale = 1
-local log, floor = math.log, math.floor
+local floor = math.floor
 
 function onLoad()
 	for i, elm in ipairs(arcs) do
 		self.addContextMenuItem(elm.name, function() ArcDraw(i) end, false)
 	end
-	arc_scale = 1 / log(self.getScale().x)
+	arc_scale = 1 / self.getScale().x
 end
 
 function ArcDraw(idno)
