@@ -59,8 +59,8 @@ function processList(text, color)
     local floor = math.floor
     local hasHero = false
 
-	for line in text:gmatch("%(%s*(.-)%s*%)") do
-        local count, name, wargear = line:match("^(%d*)x*%s*(.+:)%s*( *[%S ]*)%s*")
+	for line in text:gmatch("%(%s*(.-)%s*%)") do --TODO fix gmatch bug here 
+        local count, name, wargear = line:match("^(%d*)x*%s*(.+:)%s*( *[%S ]*)%s*") --TODO check for match bug here
         if name and count ~= "0" then
             if count ~= "" then
                 if not hasHero then
@@ -99,7 +99,6 @@ end
 
 local waitSpawning = false
 function spawnNextFromQueue(name, pos, color)
-    broadcastToAll("Spawning: " .. name .. " at position: " .. pos.x .. ", " .. pos.y .. ", " .. pos.z, color, {0.2, 1, 0.2})
 	if name == "" or not pos then
 		return
 	end
