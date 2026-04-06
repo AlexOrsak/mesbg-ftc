@@ -19,27 +19,30 @@ end
 
 function spawnFromNotebook(obj, playerColor)
     local notebooks = getNotebookTabs()
-    if #notebooks == 0 then
-        broadcastToColor("ArmyList page not found. Add a page named 'ArmyList' to the Notebook.", playerColor, {1, 0, 0})
-        return
+    for i, tab in ipairs(notebooks) do
+        if tab.title == NOTE_NAME then
+            processList(tab.body, playerColor)
+            return
+        end
     end
-    processList(notebooks[1].body, playerColor)
+    broadcastToColor("ArmyList page not found. Add a page named 'ArmyList' to the Notebook.", playerColor, {1, 0, 0})
 end
 
-local previously_spawned_units = {}
+local psu = {}
 local contents = nil
 function processList(text, color)
 	if bag == nil then
 		broadcastToColor("Error: Model bag not found!", color, {1, 0, 0})
 		return
 	end
-
+    
+	contents = bag.getData().ContainedObjects
     local basePos = {
 		x = self.getPosition().x,
 		y = self.getPosition().y + 2,
 		z = self.getPosition().z + 4
 	}
-	local rowSpacing, warbandSpacing, warbandsPerRow = 10, 8, 6
+	local rowSpacing, colSpacing, warbandsPerRow = 10, 8, 6
 	local modelIndex, warbandIndex = 0, 0
     local row, col = 0, 0
     local totalModels = 0
@@ -55,7 +58,6 @@ function processList(text, color)
     }
     local floor = math.floor
     local hasHero = false
-	contents = bag.getData().ContainedObjects
 
 	for line in text:gmatch("%(%s*(.-)%s*%)") do
         local count, name, wargear = line:match("^(%d*)x*%s*(.+:)%s*( *[%S ]*)%s*")
@@ -77,7 +79,9 @@ function processList(text, color)
                 row = floor(warbandIndex / warbandsPerRow)
                 col = warbandIndex % warbandsPerRow
                 heroPos.x = basePos.x + row * rowSpacing
-                heroPos.z = basePos.z + col * warbandSpacing
+                heroPos.z = basePos.z + col * colSpacing
+                unit_pos.x = heroPos.x
+                unit_pos.z = heroPos.z + 1.5
                 totalModels = totalModels + 1
                 modelIndex = 0
             end
@@ -85,12 +89,12 @@ function processList(text, color)
 	end
 	broadcastToColor(totalModels .. " Models | " .. floor(totalModels / 2) + 1 .. " Break | " .. floor(totalModels / 4) .. " Remaining", color, {0.2, 1, 0.2})
     contents = nil
-    for _, obj in pairs(previously_spawned_units) do
+    for _, obj in ipairs(psu) do
         if obj then
             obj.destruct()
         end
     end
-    previously_spawned_units = {}
+    psu = {}
 end
 
 local waitSpawning = false
@@ -100,25 +104,16 @@ function spawnNextFromQueue(name, pos, color)
 		return
 	end
     name = name:lower()
+    if psu[name] then
+        spawnObjectData({data = psu[name],position = pos,})
+        return
+    end
 	for _, obj in ipairs(contents) do
 		if obj["Nickname"]:lower() == name then
-            local obj = spawnObjectData()({
-                data = obj,
-                position = {0, 999, 0},
-                smooth = false,
-                callback_function = function(obj)
-                    obj.attachHider("hide", true, {})
-                    Utils.cloneObjectNoSound(previously_spawned_units[name], pos, nil, nil, function (clone)
-                        clone.attachHider("hide", false, {})
-                        clone.setLocked(false)
-                    end)
-                end
-            })
-            obj.locked = true
-            previously_spawned_units[name] = obj
+            spawnObjectData({data = obj, position = pos,})
+            psu[name] = obj
 			return
 		end
 	end
-
 	broadcastToColor("Could not find: " .. name, color, {1, 0.5, 0})
 end
