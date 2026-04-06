@@ -1,6 +1,9 @@
 # tts-editor generated output
 .tts/bundled/
 
+# Ignore data files
+*.data.json
+
 # OS junk
 .DS_Store
 Thumbs.db
