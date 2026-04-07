@@ -1,4 +1,4 @@
-savedPositions = {}
+local savedPositions = {}
 
 function onSave()
 	return JSON.encode({
@@ -9,20 +9,17 @@ end
 function onLoad(data)
 	addHotkey('Save Position', savePositionClicked)
 	addHotkey('Restore Position', restorePositionClicked)
-	restoreSavedData(data)
-end
-
-function restoreSavedData(data)
-	if data == nil then
+	savedPositions = {}
+	if data == nil or data == "" then
 		return
 	end
-	savedPositions = JSON.decode(data).savedPositions
+	savedPositions = JSON.decode(data)
 end
 
 function savePositionClicked(playerColor, hoverObj)
 	savedPositions[playerColor] = {}
-	if #Player[playerColor].getSelectedObjects() ~= 0 then
-		local objects = Player[playerColor].getSelectedObjects()
+	local objects = Player[playerColor].getSelectedObjects()
+	if #objects ~= 0 then
 		for _, obj in ipairs(objects) do
 			savePosition(playerColor, obj.getGUID(), obj.getPosition(), obj.getRotation())
 		end
@@ -42,9 +39,6 @@ function restorePositionClicked(playerColor)
 end
 
 function savePosition(playerColor, guid, position, rotation)
-    if savedPositions[playerColor] == nil then
-        savedPositions[playerColor] = {}
-    end
 	savedPositions[playerColor][#savedPositions[playerColor] + 1] = {
 		guid = guid,
 		position = position,
