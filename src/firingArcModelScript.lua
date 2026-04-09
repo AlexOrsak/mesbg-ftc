@@ -1,70 +1,28 @@
-local arcs = { -- 1st ARC (can copy paste as many arcs as required)
-{
-	name = "Siege Weapon Firing Arc",
-	origin = {0, 0.1, 0}, -- arc origin position {x,y,z}
-	range = {7, 60.8}, -- arc range {min,max} in TTS units (inch)
-	clr1 = {0, 1, 0}, -- outer range colour {r,g,b}
-	clr2 = {1, 0, 0}, -- inner range colour {r,g,b}
-}}
-
-local arcs_on = 0
-local arc_scale = 1
-local floor = math.floor
-
-function onLoad()
-	for i, elm in ipairs(arcs) do
-		self.addContextMenuItem(elm.name, function() ArcDraw(i) end, false)
-	end
-	arc_scale = 1 / self.getScale().x
+local as,ao={{n="Siege Firing Arc",r={60, 6},clr={{0, 1, 0},{1, 0, 0}},}},0
+local max,min,cos,sin,floor=math.max,math.min,math.cos,math.sin,math.floor
+local d,ci,bo,cs={0,1,2,3,4,5,6,8,10,12,18,24},1,nil,false
+function onLoad() for i,a in ipairs(as) do self.addContextMenuItem(a.n,function()AD(i)end) end end
+function AD(id)
+    if ao==id then self.setVectorLines() ao=0 return end ao=id
+    local fwd,o=nil,Vector(0,0.1,0)
+    local al,list,vi={},{},2 detectBaseSize()
+    if bo==nil then return end
+    for i=1,#as[id].r do
+        list={[1]=o}
+        fwd=Vector(0,0,as[id].r[i]+bo)
+        fwd:rotateOver('y',-22.5) vi=2
+        for j=-22.5,22.5,5 do list[vi]=o+fwd vi=vi+1 fwd:rotateOver('y',5) end list[vi]=o
+        al[i]={points=list,color=as[id].clr[i],thickness=0.1}
+    end self.setVectorLines(al)
 end
-
-function ArcDraw(idno)
-	if arcs_on == idno then
-		self.setVectorLines()
-		arcs_on = 0
-		return
-	end
-	local arc = arcs[idno]
-	local fwd_long = Vector(0, 0, arc.range[2] * arc_scale)
-	local fwd_short = Vector(0, 0, arc.range[1] * arc_scale)
-	local pos_origin = Vector(0, arc.origin[2] * arc_scale, 0)
-
-	local vec = Vector(0, 0, 0)
-	local long, short = {}, {}
-    local longi, shorti = 1, 1
-	short[shorti] = pos_origin
-    shorti = shorti + 1
-
-	fwd_long:rotateOver('y', -27.5)
-	fwd_short:rotateOver('y', -27.5)
-    vec = pos_origin + fwd_short
-    vec:rotateOver('y', 5)
-    long[longi] = vec
-    longi = longi + 1
-	for i = -22.5, 22.5, 5 do
-		fwd_long:rotateOver('y', 5)
-		fwd_short:rotateOver('y', 5)
-		vec = pos_origin + fwd_long
-		vec.y = pos_origin.y
-		long[longi] = vec
-        longi = longi + 1
-		vec = pos_origin + fwd_short
-		vec.y = pos_origin.y
-		short[shorti] = vec
-        shorti = shorti + 1
-	end
-    long[longi] = vec
-    longi = longi + 1
-    short[shorti] = pos_origin
-    shorti = shorti + 1
-	self.setVectorLines({{
-		points = long,
-		color = arc.clr1,
-		thickness = 0.1 * arc_scale
-	}, {
-		points = short,
-		color = arc.clr2,
-		thickness = 0.1 * arc_scale
-	}})
-	arcs_on = idno
-end
+function detectBaseSize() local b=self.getBoundsNormalized() if b and b.size then bo=(b.size.x or 0)/2 end end
+function onScriptingButtonDown(i, pc)
+    if Player[pc].getHoverObject()~=self or i>3 or i<1 then return end
+    if i==1 then ci=min(ci+1,#d)
+    elseif i==2 then ci=max(ci-1,1)
+    elseif i==3 then cs=not cs if bo==nil then detectBaseSize() end end
+    if not cs or bo==nil then self.setVectorLines() return end
+    if d[ci]==0 then self.setVectorLines() return end
+    self.setVectorLines({{points=getCircleVectorPoints(d[ci]+bo),color={0,0.8,0.4},thickness=0.05,rotation={0,0,0}}})
+    print(d[ci].." inch radius") end
+function getCircleVectorPoints(r) local t,a={},0 for i = 1, 65 do t[i]={cos(a)*r,0.1,sin(a)*r} a=a+0.0981747704247 end return t end
