@@ -2,25 +2,17 @@ local Utils = require("utils")
 local centerCircle_GUID = "51ee2f"
 local quarterCircle_GUID = "51ee3f"
 local templateObjective_GUID = "573333"
-local mat_GUID = "4ee1f2"
 local inGame = false
 local hideText = "Hide"
 local showText = "Show"
 local mat_size = 48
 
 function onLoad(saved_data)
-	self.setRotation({x = 0, y = 270, z = 0})
 	if saved_data ~= "" then
-		local loaded_data = JSON.decode(saved_data)
-        if loaded_data.svInGame ~= nil then
-            inGame = loaded_data.svInGame
-        end
-		if loaded_data.svDeploySelected ~= nil then
-		    deploySelected = loaded_data.svDeploySelected
-        end
-        if loaded_data.svNotes ~= nil then
-		    Notes.setNotes(loaded_data.svNotes)
-        end
+		local jsd = JSON.decode(saved_data)
+        inGame = jsd.svInGame or false
+		deploySelected = jsd.svDeploySelected or nil
+		Notes.setNotes(jsd.svNotes or "")
 	end
 	writeMenus()
 	if not inGame then
@@ -29,10 +21,13 @@ function onLoad(saved_data)
 end
 
 function onSave()
+    for _, obj in pairs(objectives, deployments, quarters, maelstromLines, corners, centers) do
+        obj.destroy()
+    end        
 	saved_data = JSON.encode({
 		svInGame = inGame,
 		svDeploySelected = deploySelected,
-		svNotes = getNotes()
+		svNotes = getNotes(),
 	})
 	return saved_data
 end
