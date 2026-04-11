@@ -48,4 +48,5 @@ TODO:
 43: Chess clock support<br>
 44: Add save file to repo<br>
 45: Add heirloom reveal failsafes<br>
+46: Remove reliance on FogOfWar<br>
 ??: Stopping Baz from world takeover<br>
