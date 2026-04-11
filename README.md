@@ -3,6 +3,7 @@ A repo of all the MESBG - FTC 0.4 scripts (and save hopefully coming soon)
 <br>
 TODO:
 <br>
+<br>
 1: Maelstrom helper with sliders that can be moved and selected on edges of the battlefield<br>
 2: Replace borders on dead pile boxes with single mesh object<br>
 3: Modify meshs to use less vertices on vertex intense objects<br>
@@ -49,4 +50,5 @@ TODO:
 44: Add save file to repo<br>
 45: Add heirloom reveal failsafes<br>
 46: Remove reliance on FogOfWar<br>
+47: Give all objects readable Nicknames<br>
 ??: Stopping Baz from world takeover<br>
