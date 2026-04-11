@@ -47,4 +47,5 @@ TODO:
 42: Add correct model states on models without them<br>
 43: Chess clock support<br>
 44: Add save file to repo<br>
+45: Add heirloom reveal failsafes<br>
 ??: Stopping Baz from world takeover<br>
