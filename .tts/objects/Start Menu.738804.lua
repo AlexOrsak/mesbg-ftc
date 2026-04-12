@@ -148,9 +148,7 @@ function spawnObjectives()
 		local pos = {}
 		local y = 1.0 + objectivesOffset
 		local template_data = getObjectFromGUID(templateObjective_GUID).getData()
-        local callback = function(spawned)
-            spawned.setLock(true)
-        end
+        local callback = function(spawned) spawned.setLock(true) end
         local objective_count = 1
 		for _, obj in ipairs(objectiveSet) do
 			pos = {x = obj[1], y = y, z = obj[2]}
@@ -162,9 +160,7 @@ function spawnObjectives()
 end
 
 function destroyAllObjectives()
-	for _, obj in ipairs(objectives) do
-		obj.destroy()
-	end
+	for _, obj in ipairs(objectives) do obj.destroy() end
 	objectives = {}
 end
 
