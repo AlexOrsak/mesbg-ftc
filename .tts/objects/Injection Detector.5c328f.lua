@@ -1,16 +1,9 @@
--- Ziggy's Malicious Script Detector.
--- If code is injected it will trigger.
--- Swaps to state 2, which onload writes
--- a message and triggers effects
-
-local original_script = self.getLuaScript()
-local og_length = string.len(original_script)
-local script_to_compare = self.getLuaScript()
-local new_length = string.len(script_to_compare)
+local os, sc = self.getLuaScript()
+local og_length, new_length = string.len(os)
 
 function objectCheck()
-    script_to_compare = self.getLuaScript()
-    new_length = string.len(script_to_compare)
+    sc = self.getLuaScript()
+    new_length = string.len(sc)
     if og_length ~= new_length then
         self.setState(2) -- let the fun begin
     end
