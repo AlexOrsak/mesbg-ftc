@@ -13,7 +13,7 @@ function onLoad(data)
 end
 
 function restoreSavedData(data)
-	if data == nil then
+	if not data or data == "" then
 		return
 	end
 	savedPositions = JSON.decode(data).savedPositions
