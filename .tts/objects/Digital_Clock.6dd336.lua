@@ -9,7 +9,7 @@ function onLoad()
         self.Clock.setValue(math.max(time + incr * mult, incr))
     end)
     self.addContextMenuItem("Subtract 15 minutes", function()
-        if incr * mult > 0 then mult = mult - 1 end
+        if time + incr * mult > 0 then mult = mult - 1 end
         self.Clock.setValue(math.max(time + incr * mult, incr))
     end)
 end
