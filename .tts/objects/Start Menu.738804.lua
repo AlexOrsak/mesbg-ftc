@@ -485,6 +485,21 @@ local function makeToggleBtn(lbl, clickFn, x)
     }
 end
 
+local function makeNavBtn(label, clickFn, x)
+    return {
+        label = label,
+        click_function = clickFn,
+        function_owner = self,
+        position = {x, 5, 1},
+        rotation = {0, 0, 0},
+        height = 750,
+        width = 800,
+        font_size = 300,
+        color = {0, 0, 0},
+        font_color = {1, 1, 1}
+    }
+end
+
 local function makeOffsetGroup(label, upFn, downFn, x)
     return {
         menu = {label = label, click_function = "none",  function_owner = self, rotation = {0,0,0}, position = {x, 5,    0}, height = 450, width = 1000, font_size = 150, color = {0,0,0}, font_color = {1,1,1}},
@@ -519,30 +534,8 @@ local scenarioDisplay = {
 	width = 6000,
 	font_size = 400
 }
-local deployUpBtn = {
-	label = "->",
-	click_function = "deployUp",
-	function_owner = self,
-	position = {-10.5, 5, 1},
-	rotation = {0, 0, 0},
-	height = 750,
-	width = 800,
-	font_size = 300,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
-local deployDownBtn = {
-	label = "<-",
-	click_function = "deployDown",
-	function_owner = self,
-	position = {-25.5, 5, 1},
-	rotation = {0, 0, 0},
-	height = 750,
-	width = 800,
-	font_size = 300,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
+local deployUpBtn   = makeNavBtn("->", "deployUp",   -10.5)
+local deployDownBtn = makeNavBtn("<-", "deployDown",  -25.5)
 local deployOffsetBtns = makeOffsetGroup("Deploy\nHeight", "deployOffsetUp", "deployOffsetDown", -28.5)
 local deployIngameLbl = "\nDeployment\nZones"
 local deployIngameBtn = {
@@ -649,7 +642,7 @@ function writeMenus()
 		deployIngameBtn.label = hideText .. deployIngameLbl
 	end
 	if #set_objs.centers > 0 then
-		centersBtn.label = hideText .. centersLbl
+		centersBtn.label = hideText .. centersBtn.lbl_var
 	end
 	self.createButton(centersBtn)
 	self.createButton(quartersBtn)
