@@ -471,6 +471,32 @@ local DeployZonesData = {
 }
 local deploySelected = #DeployZonesData
 
+local function makeToggleBtn(lbl, clickFn, x)
+    return {
+        label = showText .. lbl,
+        click_function = clickFn,
+        function_owner = self,
+        position = {x, 5, 0},
+        rotation = {0, 0, 0},
+        height = 1500,
+        width = 2600,
+        font_size = 300
+    }
+end
+
+local function makeOffsetGroup(label, upFn, downFn, x)
+    return {
+        menu = {label = label, click_function = "none",  function_owner = self, rotation = {0,0,0}, position = {x, 5,    0}, height = 450, width = 1000, font_size = 150, color = {0,0,0}, font_color = {1,1,1}},
+        up   = {label = "+",   click_function = upFn,   function_owner = self, rotation = {0,0,0}, position = {x, 5, -1.2}, height = 450, width = 800,  font_size = 300, color = {0,0,0}, font_color = {1,1,1}},
+        down = {label = "-",   click_function = downFn, function_owner = self, rotation = {0,0,0}, position = {x, 5,  1.2}, height = 450, width = 800,  font_size = 300, color = {0,0,0}, font_color = {1,1,1}},
+    }
+end
+
+local function makeUpDown(baseFn, upName, downName)
+    _G[upName]   = function() baseFn(true) end
+    _G[downName] = function() baseFn(false) end
+end
+
 local deployMenuBtn = {
 	label = "Select Deployment Zones",
 	click_function = "none",
@@ -516,42 +542,7 @@ local deployDownBtn = {
 	color = {0, 0, 0},
 	font_color = {1, 1, 1}
 }
-local deployOffsetMenuBtn = {
-	label = "Deploy\nHeight",
-	click_function = "none",
-	function_owner = self,
-	position = {-28.5, 5, 0},
-	rotation = {0, 0, 0},
-	height = 450,
-	width = 1000,
-	font_size = 150,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
-local deployOffsetUpBtn = {
-	label = "+",
-	click_function = "deployOffsetUp",
-	function_owner = self,
-	position = {-28.5, 5, -1.2},
-	rotation = {0, 0, 0},
-	height = 450,
-	width = 800,
-	font_size = 300,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
-local deployOffsetDownBtn = {
-	label = "-",
-	click_function = "deployOffsetDown",
-	function_owner = self,
-	position = {-28.5, 5, 1.2},
-	rotation = {0, 0, 0},
-	height = 450,
-	width = 800,
-	font_size = 300,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
+local deployOffsetBtns = makeOffsetGroup("Deploy\nHeight", "deployOffsetUp", "deployOffsetDown", -28.5)
 local deployIngameLbl = "\nDeployment\nZones"
 local deployIngameBtn = {
 	label = showText .. "/" .. hideText .. deployIngameLbl,
@@ -575,86 +566,15 @@ local objectivesData = { -- (x, z) coordinates of objectives, relative to center
     [8] = {{12, -6}, {0, -6}, {-12, -6}, {12, 6}, {0, 6}, {-12, 6}},
     [9] = {{-9.84, -9.84}, {9.84, 9.84}}
 }
-local objectivesOffsetMenuBtn = {
-	label = "Obj.\nHeight",
-	click_function = "none",
-	function_owner = self,
-	position = {-8, 5, 0},
-	rotation = {0, 0, 0},
-	height = 450,
-	width = 1000,
-	font_size = 150,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
-local objectivesOffsetUpBtn = {
-	label = "+",
-	click_function = "objectivesOffsetUp",
-	function_owner = self,
-	position = {-8, 5, -1.2},
-	rotation = {0, 0, 0},
-	height = 450,
-	width = 800,
-	font_size = 300,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
-local objectivesOffsetDownBtn = {
-	label = "-",
-	click_function = "objectivesOffsetDown",
-	function_owner = self,
-	position = {-8, 5, 1.2},
-	rotation = {0, 0, 0},
-	height = 450,
-	width = 800,
-	font_size = 300,
-	color = {0, 0, 0},
-	font_color = {1, 1, 1}
-}
-local quartersLbl = "\nTable Quarters"
-local quartersBtn = {
-	label = showText .. quartersLbl,
-	click_function = "showHideQuarters",
-	function_owner = self,
-	position = {9, 5, 0},
-	rotation = {0, 0, 0},
-	height = 1500,
-	width = 2600,
-	font_size = 300
-}
+local objectivesOffsetBtns = makeOffsetGroup("Obj.\nHeight", "objectivesOffsetUp", "objectivesOffsetDown", -8)
+local quartersLbl  = "\nTable Quarters"
 local maelstromLbl = "\nMaelstrom"
-local maelstromBtn = {
-	label = showText .. maelstromLbl,
-	click_function = "showHideMaelstrom",
-	function_owner = self,
-	position = {27, 5, 0},
-	rotation = {0, 0, 0},
-	height = 1500,
-	width = 2600,
-	font_size = 300
-}
-local cornersLbl = "\nCorners"
-local cornersBtn = {
-	label = showText .. cornersLbl,
-	click_function = "showHideCorners",
-	function_owner = self,
-	position = {21, 5, 0},
-	rotation = {0, 0, 0},
-	height = 1500,
-	width = 2600,
-	font_size = 300
-}
-local centersLbl = "\nCenter"
-local centersBtn = {
-	label = showText .. centersLbl,
-	click_function = "showHideCenters",
-	function_owner = self,
-	position = {15, 5, 0},
-	rotation = {0, 0, 0},
-	height = 1500,
-	width = 2600,
-	font_size = 300
-}
+local cornersLbl   = "\nCorners"
+local centersLbl   = "\nCenter"
+local quartersBtn  = makeToggleBtn(quartersLbl,  "showHideQuarters",  9)
+local maelstromBtn = makeToggleBtn(maelstromLbl, "showHideMaelstrom", 27)
+local cornersBtn   = makeToggleBtn(cornersLbl,   "showHideCorners",   21)
+local centersBtn   = makeToggleBtn(centersLbl,   "showHideCenters",   15)
 
 local lockInBtn = {
 	label = "Lock Scenario",
@@ -722,9 +642,9 @@ function writeMenus()
 		self.createButton(deployUpBtn)
 		self.createButton(deployDownBtn)
 		self.createButton(deployMenuBtn)
-		self.createButton(objectivesOffsetDownBtn)
-		self.createButton(objectivesOffsetUpBtn)
-		self.createButton(objectivesOffsetMenuBtn)
+		self.createButton(objectivesOffsetBtns.down)
+		self.createButton(objectivesOffsetBtns.up)
+		self.createButton(objectivesOffsetBtns.menu)
     else
         self.createButton(deployIngameBtn)
 	end
@@ -738,9 +658,9 @@ function writeMenus()
 	self.createButton(quartersBtn)
 	self.createButton(maelstromBtn)
 	self.createButton(cornersBtn)
-	self.createButton(deployOffsetMenuBtn)
-	self.createButton(deployOffsetUpBtn)
-	self.createButton(deployOffsetDownBtn)
+	self.createButton(deployOffsetBtns.menu)
+	self.createButton(deployOffsetBtns.up)
+	self.createButton(deployOffsetBtns.down)
 end
 
 function startGame()
@@ -748,13 +668,6 @@ function startGame()
 	inGame = true
 	for key in pairs(set_objs) do clearObjects(key) end
 	writeMenus()
-end
-
-function objectivesOffsetUp()
-	objectivesOffsetUpDown(true)
-end
-function objectivesOffsetDown()
-	objectivesOffsetUpDown(false)
 end
 
 function objectivesOffsetUpDown(upDown)
@@ -776,6 +689,7 @@ function objectivesOffsetUpDown(upDown)
 		obj.setPosition({x = pos.x, y = 1.0 + objectivesOffset, z = pos.z})
 	end
 end
+makeUpDown(objectivesOffsetUpDown, "objectivesOffsetUp", "objectivesOffsetDown")
 
 function drawDiagonal(drawData, type)
 	local rot = {x = 0, y = 45, z = 0}
@@ -865,13 +779,6 @@ function drawDeployZone(zone)
 	end
 end
 
-function deployUp()
-	deployUpDown(true)
-end
-function deployDown()
-	deployUpDown(false)
-end
-
 function deployUpDown(upDown)
 	if upDown then
 		deploySelected = deploySelected + 1
@@ -903,14 +810,7 @@ function deployUpDown(upDown)
 	end
 	writeMenus()
 end
-
-function deployOffsetUp()
-	deployOffsetUpDown(true)
-end
-
-function deployOffsetDown()
-	deployOffsetUpDown(false)
-end
+makeUpDown(deployUpDown, "deployUp", "deployDown")
 
 function deployOffsetUpDown(upDown)
 	local amt = 1
@@ -928,6 +828,7 @@ function deployOffsetUpDown(upDown)
     drawDeployZone(DeployZonesData[deploySelected])
 	writeMenus()
 end
+makeUpDown(deployOffsetUpDown, "deployOffsetUp", "deployOffsetDown")
 
 function showHideIngameDeployment()
 	if #set_objs.deployments == 0 then
