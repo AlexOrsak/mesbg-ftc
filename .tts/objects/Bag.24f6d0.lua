@@ -1,5 +1,6 @@
 local NOTE_NAME = "ArmyList"
 local Utils = require("utils")
+local modelScripts = require("modelScripts")
 
 function onLoad()
 	self.createButton({
@@ -97,12 +98,17 @@ function spawnNextFromQueue(name, pos, color)
 	end
     name = name:lower()
     if psu[name] then
-        spawnObjectData({data = psu[name],position = pos,})
+        local new_obj = spawnObjectData({data = psu[name], position = pos, callback_function = function(new_obj)
+            new_obj.LuaScript = modelScripts.getScript(psu[name].Tags)
+        end})
         return
     end
 	for _, obj in ipairs(contents) do
 		if obj["Nickname"]:lower() == name then
-            spawnObjectData({data = obj, position = pos,})
+            obj.LuaScript = modelScripts.getScript(obj.Tags)
+            local new_obj = spawnObjectData({data = obj, position = pos, callback_function = function(new_obj)
+                new_obj.LuaScript = modelScripts.getScript(obj.Tags)
+            end})
             psu[name] = obj
 			return
 		end
