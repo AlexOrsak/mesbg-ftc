@@ -91,24 +91,19 @@ function processList(text, color)
     psu = {}
 end
 
-local waitSpawning = false
 function spawnNextFromQueue(name, pos, color)
 	if name == "" or not pos then
 		return
 	end
     name = name:lower()
     if psu[name] then
-        local new_obj = spawnObjectData({data = psu[name], position = pos, callback_function = function(new_obj)
-            new_obj.LuaScript = modelScripts.getScript(psu[name].Tags)
-        end})
+        spawnObjectData({data = psu[name], position = pos})
         return
     end
 	for _, obj in ipairs(contents) do
 		if obj["Nickname"]:lower() == name then
             obj.LuaScript = modelScripts.getScript(obj.Tags)
-            local new_obj = spawnObjectData({data = obj, position = pos, callback_function = function(new_obj)
-                new_obj.LuaScript = modelScripts.getScript(obj.Tags)
-            end})
+            spawnObjectData({data = obj, position = pos})
             psu[name] = obj
 			return
 		end
