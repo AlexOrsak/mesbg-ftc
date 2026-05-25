@@ -1,4 +1,3 @@
-local objectiveName = "Objective"
 local spawnedObjectiveGUIDs = {}
 
 function onLoad()
@@ -70,7 +69,7 @@ function placeHeirloomsObjectives()
             rotation = {0, 0, 0},
             smooth = false,
             callback_function = function(obj)
-                obj.setName(objectiveName)
+                obj.setName("Objective")
                 obj.lock()
                 spawnedObjectiveGUIDs[i] = obj.getGUID()
             end
