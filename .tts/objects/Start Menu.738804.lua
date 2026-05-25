@@ -713,10 +713,10 @@ function writeMenus()
     else
         self.createButton(deployIngameBtn)
 	end
-	if #deployments > 0 then
+	if #set_objs.deployments > 0 then
 		deployIngameBtn.label = hideText .. deployIngameLbl
 	end
-	if #centers > 0 then
+	if #set_objs.centers > 0 then
 		centersBtn.label = hideText .. centersLbl
 	end
 	self.createButton(centersBtn)
@@ -731,12 +731,10 @@ end
 function startGame()
 	Global.call("recordPlayers")
 	inGame = true
-    for _, tbl in ipairs({set_objs}) do                                                                                                                                                                      
-        for _, obj in ipairs(tbl) do                                                                                                                                                                                                                                    
-            if obj ~= nil then obj.destroy() end                                                                                                                                                                                                                        
-        end
-        tbl = {}                                                                                                                                                                                                                                                        
-    end
+	for key, tbl in pairs(set_objs) do
+		for _, obj in ipairs(tbl) do obj.destroy() end
+		set_objs[key] = {}
+	end
 	writeMenus()
 end
 
@@ -927,7 +925,7 @@ function deployOffsetUpDown(upDown)
 end
 
 function showHideIngameDeployment()
-	if #deployments == 0 then
+	if #set_objs.deployments == 0 then
 		if DeployZonesData[deploySelected] ~= nil then
 			drawDeployZone(DeployZonesData[deploySelected])
 		else
