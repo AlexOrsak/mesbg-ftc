@@ -480,7 +480,8 @@ local function makeToggleBtn(lbl, clickFn, x)
         rotation = {0, 0, 0},
         height = 1500,
         width = 2600,
-        font_size = 300
+        font_size = 300,
+        lbl_var = lbl
     }
 end
 
@@ -567,14 +568,10 @@ local objectivesData = { -- (x, z) coordinates of objectives, relative to center
     [9] = {{-9.84, -9.84}, {9.84, 9.84}}
 }
 local objectivesOffsetBtns = makeOffsetGroup("Obj.\nHeight", "objectivesOffsetUp", "objectivesOffsetDown", -8)
-local quartersLbl  = "\nTable Quarters"
-local maelstromLbl = "\nMaelstrom"
-local cornersLbl   = "\nCorners"
-local centersLbl   = "\nCenter"
-local quartersBtn  = makeToggleBtn(quartersLbl,  "showHideQuarters",  9)
-local maelstromBtn = makeToggleBtn(maelstromLbl, "showHideMaelstrom", 27)
-local cornersBtn   = makeToggleBtn(cornersLbl,   "showHideCorners",   21)
-local centersBtn   = makeToggleBtn(centersLbl,   "showHideCenters",   15)
+local quartersBtn  = makeToggleBtn("\nTable Quarters", "showHideQuarters", 9)
+local maelstromBtn = makeToggleBtn("\nMaelstrom", "showHideMaelstrom", 27)
+local cornersBtn   = makeToggleBtn("\nCorners", "showHideCorners", 21)
+local centersBtn   = makeToggleBtn("\nCenter", "showHideCenters", 15)
 
 local lockInBtn = {
 	label = "Lock Scenario",
@@ -594,12 +591,12 @@ local function clearObjects(key)
     set_objs[key] = {}
 end
 
-local function showHideObjects(key, btn, lbl, spawnFn)
+local function showHideObjects(key, btn, spawnFn)
     if #set_objs[key] == 0 then
-        btn.label = hideText .. lbl
+        btn.label = hideText .. btn.lbl_var
         spawnFn()
     else
-        btn.label = showText .. lbl
+        btn.label = showText .. btn.lbl_var
         clearObjects(key)
     end
     writeMenus()
@@ -848,21 +845,21 @@ function destroyDeployZones()
 end
 
 function showHideCenters()
-    showHideObjects("centers", centersBtn, centersLbl, function()
+    showHideObjects("centers", centersBtn, function()
         drawCircle({fromCenter = 6}, "centers")
         drawCircle({fromCenter = 3}, "centers")
     end)
 end
 
 function showHideQuarters()
-    showHideObjects("quarters", quartersBtn, quartersLbl, function()
+    showHideObjects("quarters", quartersBtn, function()
         spawnLine({x = 0, y = deployLineYPos, z = 0}, {x = 0, y = 0, z = 0}, lineScaleDefault, "quarters")
         spawnLine({x = 0, y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScaleDefault, "quarters")
     end)
 end
 
 function showHideMaelstrom()
-    showHideObjects("maelstrom", maelstromBtn, maelstromLbl, function()
+    showHideObjects("maelstrom", maelstromBtn, function()
         spawnLine({x = 0, y = deployLineYPos, z = half_mat - 6}, {x = 0, y = 0,  z = 0}, lineScaleDefault, "maelstrom")
         spawnLine({x = 0, y = deployLineYPos, z = -(half_mat - 6)},{x = 0, y = 0,  z = 0}, lineScaleDefault, "maelstrom")
         spawnLine({x = half_mat - 6,  y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScaleDefault, "maelstrom")
@@ -871,7 +868,7 @@ function showHideMaelstrom()
 end
 
 function showHideCorners()
-    showHideObjects("corners", cornersBtn, cornersLbl, function()
+    showHideObjects("corners", cornersBtn, function()
         local drawData = {fromCenter = 12, circ = quarterCircle_GUID}
         drawData.rot = {x = 0, y = 270, z = 0}
         drawData.centerX = half_mat
