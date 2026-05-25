@@ -1,7 +1,6 @@
 local Utils = require("utils")
 local centerCircle_GUID = "51ee2f"
 local quarterCircle_GUID = "51ee3f"
-local templateObjective_GUID = "573333"
 local inGame = false
 local hideText = "Hide"
 local showText = "Show"
@@ -670,11 +669,27 @@ local lockInBtn = {
 	font_color = {1, 1, 1}
 }
 
+local function clearObjects(key)
+    for _, obj in ipairs(set_objs[key]) do obj.destroy() end
+    set_objs[key] = {}
+end
+
+local function showHideObjects(key, btn, lbl, spawnFn)
+    if #set_objs[key] == 0 then
+        btn.label = hideText .. lbl
+        spawnFn()
+    else
+        btn.label = showText .. lbl
+        clearObjects(key)
+    end
+    writeMenus()
+end
+
 function onLoad(saved_data)
 	if saved_data ~= "" then
 		local jsd = JSON.decode(saved_data)
         inGame = jsd.svInGame or false
-		deploySelected = jsd.svDeploySelected or nil
+		deploySelected = jsd.svDeploySelected
 		Notes.setNotes(jsd.svNotes or "")
 	end
 	writeMenus()
@@ -731,10 +746,7 @@ end
 function startGame()
 	Global.call("recordPlayers")
 	inGame = true
-	for key, tbl in pairs(set_objs) do
-		for _, obj in ipairs(tbl) do obj.destroy() end
-		set_objs[key] = {}
-	end
+	for key in pairs(set_objs) do clearObjects(key) end
 	writeMenus()
 end
 
@@ -777,7 +789,7 @@ function drawDiagonal(drawData, type)
 		pos.x = -pos.x
 		pos.z = -pos.z
 	end
-	spawnLine(pos, rot, scale, drawData.color, type)
+	spawnLine(pos, rot, scale, type, drawData.color)
 end
 
 function drawLine(drawData, type)
@@ -798,13 +810,13 @@ function drawLine(drawData, type)
 		pos.z = -pos.x
 		pos.x = 0
 	end
-	spawnLine(pos, rot, lineScaleDefault, drawData.color, type)
+	spawnLine(pos, rot, lineScaleDefault, type, drawData.color)
 end
 
 function drawCircle(drawData, type)
     local pos = {x = drawData.centerX or 0, y = deployLineYPos, z = drawData.centerZ or 0}
     local scale = {x = drawData.fromCenter, y = lineScaleDefault.y, z = drawData.fromCenter}
-    local rot = drawData.rot or nil
+    local rot = drawData.rot
     local color = drawData.color or "White"
     local callback = function(obj)
         obj.setLock(true)
@@ -813,15 +825,11 @@ function drawCircle(drawData, type)
         obj.setName("")
         obj.getComponent("MeshCollider").set("enabled", false)
     end
-    local circ = getObjectFromGUID(drawData.circ)
-    if circ == nil then
-        broadcastToAll("Error: Circle template "..drawData.circ.." is missing")
-        return
-    end
-    set_objs[type][#set_objs[type] + 1] = Utils.cloneObjectNoSound(circ.getData(), pos, rot, scale, callback)
+    local circ = drawData.circ or centerCircle_GUID
+    set_objs[type][#set_objs[type] + 1] = Utils.cloneObjectNoSound(getObjectFromGUID(circ).getData(), pos, rot, scale, callback)
 end
 
-function spawnLine(pos, rot, scale, color, type)
+function spawnLine(pos, rot, scale, type, color)
 	set_objs[type][#set_objs[type] + 1] = spawnObject({
 		type = "BlockSquare",
 		position = pos,
@@ -830,7 +838,7 @@ function spawnLine(pos, rot, scale, color, type)
         sound = false,
         callback_function = function(spawned_obj)
             spawned_obj.setLock(true)
-            spawned_obj.setColorTint(color)
+            spawned_obj.setColorTint(color or "White")
             spawned_obj.setName("")
             spawned_obj.getComponent("BoxCollider").set("enabled", false)
         end
@@ -850,9 +858,7 @@ function drawDeployZone(zone)
     end
 	for _, drawData in ipairs(zone.draw) do
 		if draw_types[drawData.type] ~= nil then
-            if drawData.subtype ~= nil then
-                drawData.circ = drawData.subtype
-            end
+            drawData.circ = drawData.subtype
 			draw_types[drawData.type](drawData, "deployments")
 			deployIngameBtn.label = hideText .. deployIngameLbl
 		end
@@ -879,12 +885,11 @@ function deployUpDown(upDown)
 		end
 	end
 	drawDeployZone(DeployZonesData[deploySelected])
-	for _, obj in ipairs(set_objs.objectives) do obj.destroy() end
-	set_objs.objectives = {}
+	clearObjects("objectives")
 	if DeployZonesData[deploySelected] ~= nil then
-		local template = getObjectFromGUID(templateObjective_GUID)
+		local template = getObjectFromGUID("573333")
 		if template == nil then
-			broadcastToAll("Error: Objective template object not found (GUID " .. templateObjective_GUID .. ")", {1, 0, 0})
+			broadcastToAll("Error: Objective template object not found", {1, 0, 0})
 			return
 		end
 		template = template.getData()
@@ -938,100 +943,49 @@ function showHideIngameDeployment()
 end
 function destroyDeployZones()
 	deployIngameBtn.label = showText .. deployIngameLbl
-	for _, obj in ipairs(set_objs.deployments) do
-		obj.destroy()
-	end
-	set_objs.deployments = {}
+	clearObjects("deployments")
 end
 
 function showHideCenters()
-	if #set_objs.centers == 0 then
-		centersBtn.label = hideText .. centersLbl
-        local circ = centerCircle_GUID
-		drawCircle({
-			fromCenter = 6,
-            circ = circ
-		}, "center")
-		drawCircle({
-			fromCenter = 3,
-            circ = circ
-		}, "center")
-	else
-		centersBtn.label = showText .. centersLbl
-        for i, obj in ipairs(set_objs.centers) do
-            obj.destroy()
-        end
-        set_objs.centers = {}
-	end
-	writeMenus()
+    showHideObjects("centers", centersBtn, centersLbl, function()
+        drawCircle({fromCenter = 6}, "centers")
+        drawCircle({fromCenter = 3}, "centers")
+    end)
 end
 
 function showHideQuarters()
-	if #set_objs.quarters == 0 then
-		quartersBtn.label = hideText .. quartersLbl
-        local linePos = {
-            x = 0,
-            y = deployLineYPos,
-            z = 0
-        }
-		spawnLine(linePos, {x = 0, y = 0, z = 0}, lineScaleDefault, "White", "quarter")
-		spawnLine(linePos, {x = 0, y = 90, z = 0}, lineScaleDefault, "White", "quarter")
-	else
-		quartersBtn.label = showText .. quartersLbl
-        for _, obj in ipairs(set_objs.quarters) do
-            obj.destroy()
-        end
-        set_objs.quarters = {}
-	end
-	writeMenus()
+    showHideObjects("quarters", quartersBtn, quartersLbl, function()
+        spawnLine({x = 0, y = deployLineYPos, z = 0}, {x = 0, y = 0, z = 0}, lineScaleDefault, "quarters")
+        spawnLine({x = 0, y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScaleDefault, "quarters")
+    end)
 end
 
 function showHideMaelstrom()
-	if #set_objs.maelstrom == 0 then
-		maelstromBtn.label = hideText .. maelstromLbl
-		spawnLine({x = 0, y = deployLineYPos, z = half_mat - 6}, {x = 0, y = 0, z = 0}, lineScaleDefault, "White", "maelstrom")
-		spawnLine({x = 0, y = deployLineYPos, z = -(half_mat - 6)}, {x = 0, y = 0, z = 0}, lineScaleDefault, "White", "maelstrom")
-		spawnLine({x = half_mat - 6, y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScaleDefault, "White", "maelstrom")
-		spawnLine({x = -(half_mat - 6), y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScaleDefault, "White", "maelstrom")
-	else
-		maelstromBtn.label = showText .. maelstromLbl
-        for _, obj in ipairs(set_objs.maelstrom) do
-            obj.destroy()
-        end
-        set_objs.maelstrom = {}
-	end
-	writeMenus()
+    showHideObjects("maelstrom", maelstromBtn, maelstromLbl, function()
+        spawnLine({x = 0, y = deployLineYPos, z = half_mat - 6}, {x = 0, y = 0,  z = 0}, lineScaleDefault, "maelstrom")
+        spawnLine({x = 0, y = deployLineYPos, z = -(half_mat - 6)},{x = 0, y = 0,  z = 0}, lineScaleDefault, "maelstrom")
+        spawnLine({x = half_mat - 6,  y = deployLineYPos, z = 0}, {x = 0, y = 90, z = 0}, lineScaleDefault, "maelstrom")
+        spawnLine({x = -(half_mat - 6), y = deployLineYPos, z = 0},{x = 0, y = 90, z = 0}, lineScaleDefault, "maelstrom")
+    end)
 end
 
 function showHideCorners()
-	if #set_objs.corners == 0 then
-		cornersBtn.label = hideText
-		local drawData = {
-			fromCenter = 12,
-            circ = quarterCircle_GUID
-		}
+    showHideObjects("corners", cornersBtn, cornersLbl, function()
+        local drawData = {fromCenter = 12, circ = quarterCircle_GUID}
         drawData.rot = {x = 0, y = 270, z = 0}
         drawData.centerX = half_mat
         drawData.centerZ = half_mat
-		drawCircle(drawData, "corners")
+        drawCircle(drawData, "corners")
         drawData.rot.y = 0
         drawData.centerZ = -half_mat
-		drawCircle(drawData, "corners")
+        drawCircle(drawData, "corners")
         drawData.rot.y = 90
         drawData.centerX = -half_mat
-		drawCircle(drawData, "corners")
+        drawCircle(drawData, "corners")
         drawData.rot.y = 180
         drawData.centerZ = half_mat
-		drawCircle(drawData, "corners")
-	else
-		cornersBtn.label = showText
-        for _, obj in ipairs(set_objs.corners) do
-            obj.destroy()
-        end
-        set_objs.corners = {}
-	end
-    cornersBtn.label = cornersBtn.label .. cornersLbl
-	writeMenus()
+        drawCircle(drawData, "corners")
+    end)
 end
 
 function none() end
