@@ -64,7 +64,7 @@ function placeHeirloomsObjectives()
         }
 
         self.takeObject({
-            guid = objGUID,
+            guid = obj.guid,
             position = pos,
             rotation = {0, 0, 0},
             smooth = false,
