@@ -1,24 +1,37 @@
-printStatsButton = "2df093"
+local printStatsButton = "2df093"
+local _demotedPlayerSteamIds = {}
+local rollBuffer = {}
+local rollActive = false
+local trackedDice = {}
+local playerStats = {}
 
-playersByColor = {
+local playersByColor = {
 	["Red"] = "",
 	["Blue"] = ""
 }
-knownObjects = {}
-playerHighlights = {}
+local knownObjects = {}
+local playerHighlights = {}
 
 function onSave()
+	for _, player in ipairs(Player.getPlayers()) do
+        savePlayerPromotionState(player)
+    end
 	return JSON.encode({
-		svPlayersByColor = playersByColor
+		svPlayersByColor = playersByColor,
+		demoted_players = _demotedPlayerSteamIds
 	})
 end
 
 function onLoad(saved_data)
+	_demotedPlayerSteamIds = {}
 	if saved_data ~= "" then
-        loadedData = JSON.decode(saved_data)
+        local loadedData = JSON.decode(saved_data)
         if loadedData.svPlayersByColor then
             playersByColor = loadedData.svPlayersByColor
         end
+		if loadedData.demoted_players then
+			_demotedPlayerSteamIds = loadedData.demoted_players
+		end
 		for color, player in pairs(playersByColor) do
 			if player ~= "" then
 				autoSeatPerson(player)
@@ -68,11 +81,16 @@ function onPlayerChangeColor(player_color)
 end
 
 function onPlayerConnect(connectedPlayer)
+	tryPromotePlayer(connectedPlayer)
 	for color, player in pairs(playersByColor) do
 		if player ~= "" and player == connectedPlayer.steam_id then
 			autoSeatPerson(connectedPlayer)
 		end
 	end
+end
+
+function onPlayerDisconnect(player)
+    savePlayerPromotionState(player)
 end
 
 function toggleHighlight(obj, playerColor)
@@ -180,11 +198,6 @@ function checkAndCleanObject(obj)
 									obj.getName(), {1, 0.4, 0.4})
 end
 
-rollBuffer = {}
-rollActive = false
-trackedDice = {}
-playerStats = {}
-
 function onObjectRandomize(obj, player_color)
 	if obj.tag ~= "Dice" then
 		return
@@ -276,4 +289,21 @@ function printStats()
 			printToAll(name .. " has no dice rolled yet.")
 		end
 	end
+end
+
+function tryPromotePlayer(player)
+    if player.promoted or player.host then
+        return
+    end
+    if _demotedPlayerSteamIds[player.steam_id] == nil then
+        player.promote()
+    end
+end
+
+function savePlayerPromotionState(player)
+    if player.promoted or player.host then
+        _demotedPlayerSteamIds[player.steam_id] = nil
+    else
+        _demotedPlayerSteamIds[player.steam_id] = {}
+    end
 end
