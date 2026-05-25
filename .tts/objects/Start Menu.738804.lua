@@ -721,10 +721,9 @@ function drawCircle(drawData, type)
     local pos = {x = drawData.centerX or 0, y = deployLineYPos, z = drawData.centerZ or 0}
     local scale = {x = drawData.fromCenter, y = lineScaleDefault.y, z = drawData.fromCenter}
     local rot = drawData.rot
-    local color = drawData.color or "White"
     local callback = function(obj)
         obj.setLock(true)
-        obj.setColorTint(drawData.color)
+        obj.setColorTint(drawData.color or "White")
         obj.interactable = false
         obj.setName("")
         obj.getComponent("MeshCollider").set("enabled", false)
