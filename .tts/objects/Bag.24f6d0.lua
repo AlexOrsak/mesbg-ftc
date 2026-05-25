@@ -6,8 +6,8 @@ function onLoad()
 		label = "Spawn Army",
 		click_function = "spawnFromNotebook",
 		function_owner = self,
-		position = {12, -84, 20},
-		rotation = {0, 270, 0},
+		position = {12, -104, -20},
+		rotation = {0, 90, 0},
 		width = 1800,
 		height = 400,
 		font_size = 250
