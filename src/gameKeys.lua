@@ -1,4 +1,4 @@
-savedPositions = {}
+local savedPositions = {}
 
 function onSave()
 	return JSON.encode({
