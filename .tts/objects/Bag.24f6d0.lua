@@ -83,11 +83,6 @@ function processList(text, color)
 	end
 	broadcastToColor(totalModels .. " Models | " .. floor(totalModels / 2) + 1 .. " Break | " .. floor(totalModels / 4) .. " Remaining", color, {0.2, 1, 0.2})
     contents = nil
-    for _, obj in ipairs(psu) do
-        if obj then
-            obj.destruct()
-        end
-    end
     psu = {}
 end
 
@@ -95,18 +90,36 @@ function spawnNextFromQueue(name, pos, color)
 	if name == "" or not pos then
 		return
 	end
-    name = name:lower()
-    if psu[name] then
-        spawnObjectData({data = psu[name], position = pos})
+    local displayName = name
+    local nameLower = name:lower()
+    local colonIdx = nameLower:find(":")
+    local baseName = colonIdx and nameLower:sub(1, colonIdx) or nameLower
+
+    local template = psu[baseName]
+    if not template then
+        for _, obj in ipairs(contents) do
+            local objLower = obj["Nickname"]:lower()
+            local objColon = objLower:find(":")
+            local objBase = objColon and objLower:sub(1, objColon) or objLower
+            if objBase == baseName then
+                obj.LuaScript = modelScripts.getScript(obj.Tags)
+                psu[baseName] = obj
+                template = obj
+                break
+            end
+        end
+    end
+
+    if not template then
+        broadcastToColor("Could not find: " .. displayName, color, {1, 0.5, 0})
         return
     end
-	for _, obj in ipairs(contents) do
-		if obj["Nickname"]:lower() == name then
-            obj.LuaScript = modelScripts.getScript(obj.Tags)
-            spawnObjectData({data = obj, position = pos})
-            psu[name] = obj
-			return
-		end
-	end
-	broadcastToColor("Could not find: " .. name, color, {1, 0.5, 0})
+
+    spawnObjectData({
+        data = template,
+        position = pos,
+        callback_function = function(spawned)
+            spawned.setName(displayName)
+        end
+    })
 end
