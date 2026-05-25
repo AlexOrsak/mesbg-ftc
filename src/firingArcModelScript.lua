@@ -5,7 +5,7 @@ function onLoad() for i,a in ipairs(as) do self.addContextMenuItem(a.n,function(
 function AD(id)
     if ao==id then self.setVectorLines() ao=0 return end ao=id
     local fwd,o=nil,Vector(0,0.1,0)
-    local al,list,vi={},{},2 detectBaseSize()
+    local al,list,vi={},{},2 dbs()
     if bo==nil then return end
     for i=1,#as[id].r do
         list={[1]=o}
@@ -15,12 +15,12 @@ function AD(id)
         al[i]={points=list,color=as[id].clr[i],thickness=0.1}
     end self.setVectorLines(al)
 end
-function detectBaseSize() local b=self.getBoundsNormalized() if b and b.size then bo=(b.size.x or 0)/2 end end
+function dbs() local b=self.getBoundsNormalized() if b and b.size then bo=(b.size.x or 0)/2 end end
 function onScriptingButtonDown(i, pc)
     if Player[pc].getHoverObject()~=self or i>3 or i<1 then return end
     if i==1 then ci=min(ci+1,#d)
     elseif i==2 then ci=max(ci-1,1)
-    elseif i==3 then cs=not cs if bo==nil then detectBaseSize() end end
+    elseif i==3 then cs=not cs if bo==nil then dbs() end end
     if not cs or bo==nil then self.setVectorLines() return end
     if d[ci]==0 then self.setVectorLines() return end
     self.setVectorLines({{points=getCircleVectorPoints(d[ci]+bo),color={0,0.8,0.4},thickness=0.05,rotation={0,0,0}}})
