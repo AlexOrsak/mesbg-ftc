@@ -51,4 +51,6 @@ TODO:
 45: Add heirloom reveal failsafes<br>
 46: Remove reliance on FogOfWar<br>
 47: Give all objects readable Nicknames<br>
+48: Fix collider on some deployments<br>
+49. Add base to Goblin scribe<br>
 ??: Stopping Baz from world takeover<br>
