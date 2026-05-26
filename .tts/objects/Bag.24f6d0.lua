@@ -4,6 +4,19 @@ local modelScripts = require("modelScripts")
 
 local SPAWN_BATCH_SIZE = 1
 
+local NO_SPAWN = {
+    ["king's champion group:"] = true,
+    ["sharkey & worm:"]        = true,
+    ["shank & wrot, orc scavengers:"] = true,
+    ["no hero sharkey:"]       = true,
+    ["no hero spider:"]        = true,
+    ["howdah:"]                = true,
+    ["bard's family:"]         = true,
+    ["vault warden team:"]     = true,
+    ["howdah great beast:"]    = true,
+    ["mumak:"]                 = true,
+}
+
 function onLoad()
 	self.createButton({
 		label = "Spawn Army",
@@ -56,27 +69,39 @@ function processList(text, color)
     }
     local floor = math.floor
     local hasHero = false
+    local nextWarriorHeroPos = nil
 
 	spawnQueue = {}
 	for line in text:gmatch("%(%s*(.-)%s*%)") do --TODO fix gmatch bug here
         local count, name, wargear = line:match("^(%d*)x*%s*(.+:)%s*( *[%S ]*)%s*") --TODO check for match bug here
         if name and count ~= "0" then
             local fullName = wargear ~= "" and name .. " " .. wargear or name
+            local fullNameLower = fullName:lower()
             if count ~= "" then
                 if not hasHero then
                     broadcastToColor("Error: \"" .. name .. "\" found before any hero.", color, {1, 0, 0})
-                else
+                elseif not NO_SPAWN[fullNameLower] then
                     for i = 1, tonumber(count) do
-                        spawnQueue[#spawnQueue + 1] = {name = fullName, pos = {x = unit_pos.x, y = unit_pos.y, z = unit_pos.z}, color = color}
+                        if nextWarriorHeroPos then
+                            spawnQueue[#spawnQueue + 1] = {name = fullName, pos = nextWarriorHeroPos, color = color}
+                            nextWarriorHeroPos = nil
+                        else
+                            spawnQueue[#spawnQueue + 1] = {name = fullName, pos = {x = unit_pos.x, y = unit_pos.y, z = unit_pos.z}, color = color}
+                            modelIndex = modelIndex + 1
+                            unit_pos.x = warbandBase.x + (modelIndex % 6) * 1.1
+                            unit_pos.z = warbandBase.z + floor(modelIndex / 6) * 1.1
+                        end
                         totalModels = totalModels + 1
-                        modelIndex = modelIndex + 1
-                        unit_pos.x = warbandBase.x + (modelIndex % 6) * 1.1
-                        unit_pos.z = warbandBase.z + floor(modelIndex / 6) * 1.1
                     end
                 end
             else
                 hasHero = true
-                spawnQueue[#spawnQueue + 1] = {name = fullName, pos = {x = heroPos.x, y = heroPos.y, z = heroPos.z}, color = color}
+                if NO_SPAWN[fullNameLower] then
+                    nextWarriorHeroPos = {x = heroPos.x, y = heroPos.y, z = heroPos.z}
+                else
+                    spawnQueue[#spawnQueue + 1] = {name = fullName, pos = {x = heroPos.x, y = heroPos.y, z = heroPos.z}, color = color}
+                    totalModels = totalModels + 1
+                end
                 warbandBase.x = heroPos.x
                 warbandBase.z = heroPos.z + 1.5
                 warbandIndex = warbandIndex + 1
@@ -86,7 +111,6 @@ function processList(text, color)
                 heroPos.z = basePos.z + col * colSpacing
                 unit_pos.x = warbandBase.x
                 unit_pos.z = warbandBase.z
-                totalModels = totalModels + 1
                 modelIndex = 0
             end
         end
