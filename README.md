@@ -53,3 +53,5 @@ TODO:
 47: Give all objects readable Nicknames<br>
 48: Fix collider on some deployments<br>
 49. Add base to Goblin scribe<br>
+50. Add Haradrim Mumak commander as well as Mahud Beastmaster Chieftain models
+51. Improve Mumak Howdah usability
