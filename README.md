@@ -47,7 +47,7 @@ TODO:
 41: Fix incorrect model states<br>
 42: Add correct model states on models without them<br>
 43: Chess clock support<br>
-44: Add save file to repo<br>
+44: (X) Add save file to repo<br>
 45: Add heirloom reveal failsafes<br>
 46: Remove reliance on FogOfWar<br>
 47: Give all objects readable Nicknames<br>
