@@ -1,6 +1,9 @@
 # tts-editor generated output
 .tts/bundled/
 
+#Claude settings
+.claude
+
 # Ignore data files
 *.data.json
 
