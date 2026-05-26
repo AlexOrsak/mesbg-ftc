@@ -5,7 +5,8 @@ function onLoad()
         click_function = "placeHeirloomsObjectives",
         function_owner = self,
         label = "Place Heirlooms Objectives",
-        position = {-4, 3, 0},
+        position = {20, 6, -20},
+        rotation = {0, 270, 0},
         width = 4400,
         height = 900,
         font_size = 350
@@ -15,7 +16,8 @@ function onLoad()
         click_function = "resetObjectives",
         function_owner = self,
         label = "Reset Objectives",
-        position = {4, 3, 0},
+        position = {20, 6, -36},
+        rotation = {0, 270, 0},
         width = 2600,
         height = 700,
         font_size = 250
@@ -25,7 +27,8 @@ function onLoad()
         click_function = "raiseObjectives",
         function_owner = self,
         label = "+",
-        position = {8.1, 3, 0},
+        position = {20, 6, -28},
+        rotation = {0, 270, 0},
         width = 800,
         height = 700,
         font_size = 400
@@ -35,7 +38,8 @@ function onLoad()
         click_function = "lowerObjectives",
         function_owner = self,
         label = "–",
-        position = {9.6, 3, 0},
+        position = {20, 6, -26},
+        rotation = {0, 270, 0},
         width = 800,
         height = 700,
         font_size = 400
