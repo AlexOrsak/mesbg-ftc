@@ -8,8 +8,8 @@ Tagging rules (applied from current script content):
   - Any other non-empty script          → Tags: ["calcBounding"]
   - Empty script                        → Tags unchanged (needs manual review)
 
-Run from the repo root:
-  python scripts/tag-and-strip.py [--dry-run]
+Run from the scripts/ directory:
+  python tag-and-strip.py [--dry-run]
 """
 
 import json
@@ -19,7 +19,7 @@ from pathlib import Path
 
 BAG_GUID = "24f6d0"
 SAVE_PATH = Path("../save.json")
-DATA_PATH = Path(".tts/objects") / f"Bag.{BAG_GUID}.data.json"
+DATA_PATH = Path("../.tts/objects") / f"Bag.{BAG_GUID}.data.json"
 
 DRY_RUN = "--dry-run" in sys.argv
 
