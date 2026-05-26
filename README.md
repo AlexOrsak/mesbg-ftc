@@ -37,7 +37,7 @@ TODO:
 31: Remove colliders on objects that do not require them<br>
 32: Improve meshes that require Convex=false<br>
 33: Color blindness support<br>
-34: Add trample templates to all siege<br>
+34: Add trample templates to all war beasts<br>
 35: Add arc firing to all siege<br>
 36: Clear ununsed scripts<br>
 37: Increase table size<br>
