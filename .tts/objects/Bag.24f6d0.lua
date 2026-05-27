@@ -151,7 +151,6 @@ function spawnNextFromQueue(name, pos, color)
         for _, obj in ipairs(contents) do
             local objLower = obj["Nickname"]:lower()
             if objLower == nameLower then
-                obj.LuaScript = modelScripts.getScript(obj.Tags)
                 psu[nameLower] = obj
                 template = obj
                 break
@@ -165,7 +164,6 @@ function spawnNextFromQueue(name, pos, color)
             end
         end
         if not template and baseMatch then
-            baseMatch.LuaScript = modelScripts.getScript(baseMatch.Tags)
             psu[baseName] = baseMatch
             template = baseMatch
         end
@@ -176,11 +174,15 @@ function spawnNextFromQueue(name, pos, color)
         return
     end
 
+    local script = modelScripts.getScript(template.Tags)
     spawnObjectData({
         data = template,
         position = pos,
         callback_function = function(spawned)
             spawned.setName(displayName)
+            if script ~= "" then
+                spawned.setLuaScript(script)
+            end
         end
     })
 end
